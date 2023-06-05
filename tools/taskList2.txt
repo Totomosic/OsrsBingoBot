@@ -5,7 +5,6 @@ Get 20 barrow brothers kc
 Get 10 vorkath kc
 Do 5 mediums clues + 5 easy clues
 Catch 200 sharks 
-Hit the “!undice” command
 Get 50 Crazy archaeologist kc
 Do a Raid of any kind (and win it)
 Do a slayer task (most be from either Nieve/Steve/Konar/Duradel/Krystilia)
@@ -19,7 +18,6 @@ Do a Raid of any kind (and win it)
 Do 5 mediums clues + 5 easy clues
 Get 10 Kalphite queen kc
 Do 5 gauntlet kc (blue or/and red)
-Hit the “!undice” command
 Do 15 tempoross kc
 Get 250k thiving xp
 Do 30 mahogany homes
@@ -35,7 +33,6 @@ Get 20 barrow brothers kc
 Get 10 vorkath kc
 Do 5 mediums clues + 5 easy clues
 Catch 200 sharks 
-Hit the “!undice” command
 Get 50 Crazy archaeologist kc
 Do a Raid of any kind (and win it)
 Do a slayer task (most be from either Nieve/Steve/Konar/Duradel/Krystilia)
@@ -49,7 +46,6 @@ Do a Raid of any kind (and win it)
 Do 5 mediums clues + 5 easy clues
 Get 10 Kalphite queen kc
 Do 5 gauntlet kc (blue or/and red)
-Hit the “!undice” command
 Do 15 tempoross kc
 Get 250k thiving xp
 Do 30 mahogany homes

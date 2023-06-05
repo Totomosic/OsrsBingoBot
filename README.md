@@ -1,3 +1,1 @@
-# OsrsGames
-# OsrsGame
-# OsrsGame
+# OSRS Bingo Bot

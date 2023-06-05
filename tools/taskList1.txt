@@ -7,7 +7,6 @@ Get a giant key
 Do 50 laps of any agility rooftop courses 
 Get 200k xp in any skill
 Get 20 tempoross permits
-Roll the “!undice” command
 Get some abyssel pearls from gotr
 Catch 20 imps of any kind
 Hunt 30 herbiboar
@@ -15,7 +14,6 @@ Do 20 rounds of telekinetic pizazz in mta
 Get a mossy key
 Do 5 beginner clues
 Get 20 reward permits from wintertodt
-Roll the "!undice” command
 Get 3 unidentified minerals in the mining guild
 Murder giant mole 5 times
 Murder Deranged archaeologist 10 times
@@ -37,15 +35,13 @@ Get a barrow brother armor piece
 Do 50 laps of any agility rooftop courses 
 Get 200k xp in any skill
 Get 20 tempoross permits
-Roll the “!undice” command
-Get some abyssel pearls from gotr
+Get some abyssal pearls from gotr
 Catch 20 imps of any kind
 Hunt 30 herbiboar
 Do 20 rounds of telekinetic pizazz in mta
 Get a mossy key
 Do 5 beginner clues
 Get 20 reward permits from wintertodt
-Roll the “!undice” command
 Get 3 unidentified minerals in the mining guild
 Murder giant mole 5 times
 Murder Deranged archaeologist 10 times
@@ -54,7 +50,6 @@ Do 10 mahogany homes
 Get 100k mining xp
 Do 5 easy clues
 Get 200k xp from pyramid plunder 
-Get 100 points in mta Alchemist room
 Get a barrow brother armor piece
 Hand in 5 pyramid tops
 Get 200k wc xp 

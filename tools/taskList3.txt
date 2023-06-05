@@ -10,7 +10,6 @@ Murder 200 of any monster that drops a Champion scroll
 Win 2 soul wars game (on mass world) 
 Win 2 games of TOA
 Kill 20 of any gwd bosses 
-Hit the “!undice”
 Get 1 Chewed bones
 Get 5 castle wars tickets (in any way)
 Win 10 games of guardians of the rift
@@ -23,7 +22,6 @@ Do 10 hard gnome restaurant deliveries
 Do 10 beginner clues
 Win 2 games of TOA
 Kill 20 of any gwd bosses 
-Hit the “!undice”
 Get 1 Chewed bones
 Go outsider for a hour
 Murder vorkath 25 times
@@ -40,7 +38,6 @@ Murder 200 of any monster that drops a Champion scroll
 Win 2 soul wars game (on mass world) 
 Win 2 games of TOA
 Kill 20 of any gwd bosses 
-Hit the “!undice”
 Get 1 Chewed bones
 Get 5 castle wars tickets (in any way)
 Win 10 games of guardians of the rift
@@ -53,7 +50,6 @@ Do 10 hard gnome restaurant deliveries
 Do 10 beginner clues
 Win 2 games of TOA
 Kill 20 of any gwd bosses 
-Hit the “!undice”
 Get 1 Chewed bones
 Go outsider for a hour
 Murder vorkath 25 times

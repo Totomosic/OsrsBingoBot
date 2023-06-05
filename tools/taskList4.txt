@@ -5,8 +5,6 @@ Fish 200 anglers
 Thieve a blood shard or teleport crystal
 DM a personalised compliment to at least 10 different people on your friends list
 Complete 10 (corrupted optional) gauntlet kc
-BONUS! Roll the !dice again
-Roll !undice
 Make 10 swords in the Giants Foundry
 Complete an elite clue
 Get more than 10 permits in a single game of tempoross
@@ -23,8 +21,6 @@ Get 200k prayer xp
 Complete 3 hard clues
 Kill 20 DKs
 Get a 2 barrows items (weapons count, of course they do, not counting would be dumb)
-BONUS! Roll the !dice again
-Roll !undice
 Get 3 brimstone keys
 Max the blast mining sack then collect all the xp
 Get a wintertodt crate with 27/28 rolls (13500 point game)
@@ -35,8 +31,6 @@ Fish 200 anglers
 Thieve a blood shard or teleport crystal
 DM a personalised compliment to at least 10 different people on your friends list
 Complete 10 (corrupted optional) gauntlet kc
-BONUS! Roll the !dice again
-Roll !undice
 Make 10 swords in the Giants Foundry
 Complete an elite clue
 Get more than 10 permits in a single game of tempoross
@@ -53,8 +47,5 @@ Get 200k prayer xp
 Complete 3 hard clues
 Kill 20 DKs
 Get a 2 barrows items (weapons count, of course they do, not counting would be dumb)
-BONUS! Roll the !dice again
-Roll !undice
 Get 3 brimstone keys
 Max the blast mining sack then collect all the xp
-Get a wintertodt crate with 27/28 rolls (13500 point game)
