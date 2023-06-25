@@ -76,3 +76,8 @@ class TaskDatabase:
         if len(self.tasks) == 0:
             raise TaskValidationException(f"There are no tasks in the database")
         return random.choice(self.get_tasks())
+
+    def get_random_tasks(self, ntasks: int) -> list[OsrsTask]:
+        if len(self.tasks) == 0:
+            raise TaskValidationException(f"There are no tasks in the database")
+        return random.choices(self.get_tasks(), k=ntasks)

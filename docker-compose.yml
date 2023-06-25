@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  bingo-bot:
+    build:
+      context: "."
+      dockerfile: "./Dockerfile"
+    container_name: BingoBot
+    restart: always
+    depends_on:
+      - tasks-db
+    environment:
+      - DB_URI=postgres://root:password@tasks-db:5432/tasks-db
+    volumes:
+      - ./:/opt/app
+
+  tasks-db:
+    container_name: TaskDatabase
+    image: kartoza/postgis:13.0
+    volumes:
+      - db-data:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=tasks-db
+      - POSTGRES_USER=root
+      - POSTGRES_PASS=password
+      - ALLOW_IP_RANGE=0.0.0.0/0
+    restart: on-failure
+    shm_size: "2gb"
+
+volumes:
+  db-data: {}
