@@ -5,14 +5,16 @@ import dataclasses
 import discord
 from discord.ext import commands
 import json
+import logging
 import math
 import os
 import time
 import traceback
 
 import model
-import tasks
 import templates
+
+logging.basicConfig(level=logging.INFO)
 
 @dataclasses.dataclass
 class BotConfig:
@@ -23,7 +25,6 @@ class BotConfig:
 @dataclasses.dataclass
 class BotContext:
     database: model.DatabaseConnection
-    tasks: tasks.TaskDatabase
 
 def read_discord_token(config: BotConfig) -> str:
     return config.bot_token
@@ -55,9 +56,12 @@ bot = commands.Bot(
 
 g_context = BotContext(
     database=model.DatabaseConnection(config.database_dsn),
-    tasks=tasks.TaskDatabase(),
 )
-g_context.tasks.load_task_file(config.tasks_filename)
+g_context.database.initialize()
+with open(config.tasks_filename, "r") as f:
+    tasks_data = json.load(f)
+parsed_tasks = [model.Task(id=task["id"], description=task["task"], weight=task["weight"], instruction="test") for task in tasks_data["tasks"]]
+g_context.database.insert_tasks(parsed_tasks)
 
 # Setup bot commands
 
@@ -114,23 +118,24 @@ class Paginator:
 
 @bot.command()
 async def list(ctx: commands.Context, page: int = 1):
-    tasks = g_context.tasks.get_tasks()
-    formatted_tasks = [f"**{task.id}** {task.task.get_template()}" for task in tasks]
+    tasks = g_context.database.get_tasks()
+    formatted_tasks = [f"**{task.id}** {task.description}" for task in tasks]
     paginator = Paginator(formatted_tasks, per_page=25, start_page=page)
     await paginator.send(ctx)
 
 @bot.command()
 async def task(ctx: commands.Context, task_id: int = None):
     if task_id is None:
-        task = g_context.tasks.get_random_task()
+        task = g_context.database.get_random_task()
     else:
-        task = g_context.tasks.get_task_by_id(task_id)
+        task = g_context.database.get_task_by_id(task_id)
         if task is None:
             raise Exception(f"No task with ID {task_id}")
+    parsed_task = model.ParsedTask.from_task(task)
     embed = discord.Embed(
-        title=f"Task {task.id}",
+        title=f"Task {parsed_task.id}",
         color=0x0099FF,
-        description=task.task.evaluate(),
+        description=parsed_task.description.evaluate(),
     )
     # embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
@@ -138,12 +143,12 @@ async def task(ctx: commands.Context, task_id: int = None):
 @bot.command()
 async def edit(ctx: commands.Context, task_id: int, template: str):
     template_obj = templates.ParsedTemplate(template)
-    existing_task = g_context.tasks.get_task_by_id(task_id)
+    existing_task = g_context.database.get_task_by_id(task_id)
     if not existing_task:
         raise Exception(f"No task with ID {task_id}")
-    existing_task.task = template_obj
-    g_context.tasks.save(config.tasks_filename)
-    await ctx.send(f"Successfully updated task **{task_id}**: {existing_task.task.get_template()}")
+    existing_task.description = template_obj.get_template()
+    g_context.database.update_task(existing_task)
+    await ctx.send(f"Successfully updated task **{task_id}**: {existing_task.description}")
 
 number_reactions = [
     "1️⃣",
@@ -162,9 +167,10 @@ async def choice(ctx: commands.Context):
     nchoices = 3
     voting_time_seconds = 10
     end_voting_time = int(time.time() + voting_time_seconds)
-    tasks = g_context.tasks.get_random_tasks(nchoices)
+    tasks = g_context.database.get_random_tasks(nchoices)
+    parsed_tasks = [model.ParsedTask.from_task(task) for task in tasks]
 
-    evaluated_tasks = [task.task.evaluate() for task in tasks]
+    evaluated_tasks = [task.description.evaluate() for task in parsed_tasks]
     message_choices = "\n".join([f"{number_reactions[idx]} {task}" for idx, task in enumerate(evaluated_tasks)])
 
     embed = discord.Embed(
@@ -189,12 +195,12 @@ async def choice(ctx: commands.Context):
             reaction_counts.append((index, reaction.count))
 
     reaction_counts.sort(key=lambda pair: pair[1], reverse=True)
-    task = evaluated_tasks[reaction_counts[0][0]]
+    selected_index = reaction_counts[0][0]
+    task = evaluated_tasks[selected_index]
     await message.clear_reactions()
 
-    embed.description = "Voting ended\n\n" + message_choices + f"\n\nSelected Task:\n{task}"
+    embed.description = "Voting ended\n\n" + message_choices + f"\n\n**Selected Task:**\n{task}\n\n**Submission Instructions:**\n{parsed_tasks[selected_index].instruction}"
     await message.edit(embed=embed)
-
 
 def handle_errors(*cmds):
     for cmd in cmds:

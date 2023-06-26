@@ -1,5 +1,4 @@
 {
     "bot_token": "<discord_secret_token>",
-    "tasks_filename": "",
-    "database_dsn": ""
+    "tasks_filename": ""
 }
