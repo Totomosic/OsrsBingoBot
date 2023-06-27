@@ -2,6 +2,7 @@ import asyncio
 import argparse
 from collections import defaultdict
 import dataclasses
+import datetime
 import discord
 from discord.ext import commands
 import json
@@ -11,8 +12,12 @@ import os
 import time
 import traceback
 
+from discord.message import Message
+from discord.reaction import Reaction
+
 import model
 import templates
+import utils
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,12 +49,69 @@ def get_config_from_args() -> BotConfig:
 
 # Initialize bot
 
+COMMAND_PREFIX = "!"
+
+class BotLogger:
+    def __init__(self, channel: discord.TextChannel):
+        self.channel = channel
+
+    async def info(self, msg: str):
+        await self.channel.send(msg)
+
+class BingoBot(commands.Bot):
+    async def on_ready(self):
+        channel = self.get_channel(1122929431929954394)
+        self.logger = BotLogger(channel)
+        self.loop.create_task(self.reaction_added_watcher())
+        self.loop.create_task(self.reaction_removed_watcher())
+
+    async def on_message(self, message: Message):
+        return await super().on_message(message)
+
+    async def reaction_added_watcher(self):
+        while True:
+            reaction: discord.RawReactionActionEvent = await self.wait_for("raw_reaction_add")
+            if reaction.user_id != self.user.id:
+                message = self.get_channel(reaction.channel_id).get_partial_message(reaction.message_id)
+                message = await message.fetch()
+                if message.author.id != self.user.id:
+                    active_task = g_context.database.get_active_task_instance()
+                    if active_task is not None:
+                        completion = model.TaskCompletion(
+                            id=None,
+                            instance_id=active_task.id,
+                            user_id=message.author.id,
+                            approver_id=reaction.user_id,
+                            completion_time=datetime.datetime.now(),
+                            evidence_channel_id=reaction.channel_id,
+                            evidence_message_id=reaction.message_id,
+                        )
+                        user = self.get_user(completion.user_id)
+                        approver = self.get_user(completion.approver_id)
+                        if g_context.database.add_task_completion(completion):
+                            await self.logger.info(f"Added completion for user {user.mention} (Approved by {approver.mention})")
+                        else:
+                            await self.logger.info(f"Task has already been completed by {user.mention}")
+
+    async def reaction_removed_watcher(self):
+        while True:
+            reaction: discord.RawReactionActionEvent = await self.wait_for("raw_reaction_remove")
+            if reaction.user_id != self.user.id:
+                message = self.get_channel(reaction.channel_id).get_partial_message(reaction.message_id)
+                message = await message.fetch()
+                if message.author.id != self.user.id:
+                    completions = g_context.database.remove_completions_from_message(message.id)
+                    for completion in completions:
+                        user = self.get_user(int(completion.user_id))
+                        approver = self.get_user(int(completion.approver_id))
+                        await self.logger.info(f"Removed completion for user {user.mention} (Approved by {approver.mention})")
+
 config = get_config_from_args()
 bot_token = read_discord_token(config)
 description = """Discord osrs bot"""
-bot = commands.Bot(
+bot = BingoBot(
     intents=discord.Intents.all(),
-    command_prefix="!",
+    command_prefix=COMMAND_PREFIX,
     description=description,
     case_insensitive=True,
 )
@@ -65,62 +127,11 @@ g_context.database.insert_tasks(parsed_tasks)
 
 # Setup bot commands
 
-g_page_reactions = {
-    "◀️": -1,
-    "▶️": 1,
-}
-g_page_react_order = ["◀️", "▶️"]
-
-class Paginator:
-    def __init__(self, data: list[str], per_page: int = 10, start_page: int = 1):
-        self.data = data
-        self.per_page = per_page
-        self.max_pages = math.ceil(len(self.data) / self.per_page)
-        self.current_page = min(start_page, self.max_pages)
-
-    def format_chunk(self, current_page: int, max_pages: int, chunk: list[str]):
-        return {
-            "embed": discord.Embed(
-                title=f"Page {current_page}/{max_pages}",
-                description="\n".join(chunk),
-                color=0x0099FF,
-            )
-        }
-
-    async def send(self, ctx: commands.Context):
-        message = await ctx.send(**self.format_chunk(self.current_page, self.max_pages, self.calculate_chunk()))
-        await self._add_reactions(message)
-        active = True
-
-        def check(reaction: discord.Reaction, user):
-            return user == ctx.author and str(reaction.emoji) in g_page_reactions and reaction.message.id == message.id
-                        # or you can use unicodes, respectively: "\u25c0" or "\u25b6"
-
-        while active:
-            try:
-                reaction, user = await bot.wait_for("reaction_add", timeout=60, check=check)
-                page_move_amount = g_page_reactions[str(reaction.emoji)]
-                new_page = self.current_page + page_move_amount
-                if new_page > 0 and new_page <= self.max_pages:
-                    self.current_page = new_page
-                    await message.edit(**self.format_chunk(self.current_page, self.max_pages, self.calculate_chunk()))
-                await message.remove_reaction(reaction.emoji, user)
-            except asyncio.TimeoutError:
-                await message.clear_reactions()
-                active = False
-
-    def calculate_chunk(self):
-        return self.data[(self.current_page - 1) * self.per_page : self.current_page * self.per_page]
-
-    async def _add_reactions(self, message: discord.Message):
-        for reaction in g_page_react_order:
-            await message.add_reaction(reaction)
-
 @bot.command()
 async def list(ctx: commands.Context, page: int = 1):
     tasks = g_context.database.get_tasks()
     formatted_tasks = [f"**{task.id}** {task.description}" for task in tasks]
-    paginator = Paginator(formatted_tasks, per_page=25, start_page=page)
+    paginator = utils.Paginator(bot, formatted_tasks, per_page=25, start_page=page)
     await paginator.send(ctx)
 
 @bot.command()
@@ -199,8 +210,38 @@ async def choice(ctx: commands.Context):
     task = evaluated_tasks[selected_index]
     await message.clear_reactions()
 
-    embed.description = "Voting ended\n\n" + message_choices + f"\n\n**Selected Task:**\n{task}\n\n**Submission Instructions:**\n{parsed_tasks[selected_index].instruction}"
+    task_instance = g_context.database.create_task_instance(tasks[selected_index].id, evaluated_tasks[selected_index])
+
+    embed.description = f"Voting ended\n\n**Selected Task:**\n{task}\n\n**Submission Instructions:**\n{parsed_tasks[selected_index].instruction}\n\nEnds <t:{int(task_instance.end_time.timestamp())}:R>"
     await message.edit(embed=embed)
+
+@bot.command()
+async def activetask(ctx: commands.Context):
+    task_instance = g_context.database.get_active_task_instance()
+    if task_instance is not None:
+        await ctx.send(f"Active task: {task_instance.evaluated_task}")
+    else:
+        await ctx.send("No active task")
+
+@bot.command()
+async def completions(ctx: commands.Context):
+    active_task = g_context.database.get_active_task_instance()
+    if active_task is not None:
+        completions = g_context.database.get_task_completions(active_task.id)
+        completion_strs = []
+        for completion in completions:
+            user = bot.get_user(int(completion.user_id))
+            if user is not None:
+                message = bot.get_channel(int(completion.evidence_channel_id)).get_partial_message(int(completion.evidence_message_id))
+                completion_strs.append(f"{user.mention} at <t:{int(completion.completion_time.timestamp())}> ({message.jump_url})")
+        embed = discord.Embed(
+            title=f"Task {active_task.id} - {len(completion_strs)} Completions",
+            color=0x0099FF,
+            description="\n".join(completion_strs),
+        )
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send("No active task")
 
 def handle_errors(*cmds):
     for cmd in cmds:
