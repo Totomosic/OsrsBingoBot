@@ -1,7 +1,15 @@
+import datetime
 import discord
 from discord.ext import commands
 import math
 import asyncio
+
+def round_datetime(date: datetime.datetime) -> datetime.datetime:
+    discard = datetime.timedelta(microseconds=date.microsecond, seconds=date.second)
+    result = date - discard
+    if discard >= datetime.timedelta(seconds=30):
+        result += datetime.timedelta(seconds=60)
+    return result
 
 g_page_reactions = {
     "◀️": -1,

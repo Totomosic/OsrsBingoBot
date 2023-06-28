@@ -1,1 +1,0 @@
-python build_initial_tasks.py --output ../tasks/tasks.json --file taskList1.txt --file taskList2.txt --file taskList3.txt --file taskList4.txt --file taskList5.txt --file taskList6.txt
