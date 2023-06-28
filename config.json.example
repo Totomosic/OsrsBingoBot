@@ -1,4 +1,10 @@
 {
-    "bot_token": "<discord_secret_token>",
-    "tasks_filename": ""
+    "bot_token": "<discord_token>",
+    "tasks_filename": "tasks/MasterTaskList.txt",
+    "announcement_channel_id": 0,
+    "submission_channel_id": 0,
+    "log_channel_id": 0,
+    "task_duration_seconds": 180,
+    "voting_time_seconds": 60,
+    "admin_role_id": 0
 }
