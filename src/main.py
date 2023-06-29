@@ -134,7 +134,10 @@ class BingoBot(commands.Bot):
             reaction: discord.RawReactionActionEvent = await self.wait_for("raw_reaction_add")
             if reaction.user_id != self.user.id and reaction.channel_id == g_context.submission_channel.id and is_user_id_bingo_admin(reaction.guild_id, reaction.user_id):
                 message = self.get_channel(reaction.channel_id).get_partial_message(reaction.message_id)
-                message = await message.fetch()
+                try:
+                    message = await message.fetch()
+                except discord.errors.NotFound:
+                    return
                 if message.author.id != self.user.id:
                     active_task = g_context.database.get_active_task_instance()
                     if active_task is not None:
@@ -160,7 +163,10 @@ class BingoBot(commands.Bot):
             reaction: discord.RawReactionActionEvent = await self.wait_for("raw_reaction_remove")
             if reaction.user_id != self.user.id and reaction.channel_id == g_context.submission_channel.id and is_user_id_bingo_admin(reaction.guild_id, reaction.user_id):
                 message = self.get_channel(reaction.channel_id).get_partial_message(reaction.message_id)
-                message = await message.fetch()
+                try:
+                    message = await message.fetch()
+                except discord.errors.NotFound:
+                    return
                 if message.author.id != self.user.id:
                     completions = g_context.database.remove_completions_from_message(message.id)
                     await message.remove_reaction(BOT_ACKNOWLEDGE_REACTION, self.user)
@@ -230,11 +236,15 @@ async def end_task(task_instance: model.TaskInstance):
     message = channel.get_partial_message(task_instance.message_id)
     if not message:
         return
-    message = await message.fetch()
-    if not message:
+    try:
+        message = await message.fetch()
+    except discord.errors.NotFound:
         return
 
-    await message.delete()
+    try:
+        await message.delete()
+    except discord.errors.NotFound:
+        return
 
     # task = g_context.database.get_task_by_id(task_instance.task_id)
     # embed = discord.Embed(title="Ended Task")
@@ -245,10 +255,11 @@ async def end_task(task_instance: model.TaskInstance):
 async def cancel_vote(vote: model.TaskVote):
     channel = g_context.announcement_channel
     message = channel.get_partial_message(vote.voting_message_id)
-    await message.delete()
-    vote.completed = True
-    vote.end_time = datetime.datetime.now()
-    g_context.database.update_vote(vote)
+    try:
+        await message.delete()
+    except discord.errors.NotFound:
+        pass
+    g_context.database.delete_vote(vote)
 
 async def finish_vote(vote: model.TaskVote):
     vote.completed = True
@@ -256,7 +267,12 @@ async def finish_vote(vote: model.TaskVote):
 
     channel = g_context.announcement_channel
     message = channel.get_partial_message(vote.voting_message_id)
-    message = await message.fetch()
+    if message is None:
+        return
+    try:
+        message = await message.fetch()
+    except discord.errors.NotFound:
+        return
 
     reactions = message.reactions
     vote_options = g_context.database.get_vote_options(vote.id)
@@ -289,14 +305,14 @@ async def finish_vote(vote: model.TaskVote):
 
     embed = discord.Embed()
     embed.title = "Current Task"
-    embed.description = f"{selected_option.evaluated_task}\n\n**Submission Instructions:**\n{selected_task.instruction}\n\nEnds <t:{int(new_task.end_time.timestamp())}:R>"
+    embed.description = f"{selected_option.evaluated_task}\n\n**Submission Instructions:**\n{selected_task.instruction}\nPost all screenshots in {g_context.submission_channel.jump_url}\n\nEnds <t:{int(new_task.end_time.timestamp())}:R>"
     embed.color = 0x00FF00
     await message.edit(embed=embed)
 
     if previous_task is not None:
         await end_task(previous_task)
 
-async def start_new_vote():
+async def start_new_vote(end_time_override: datetime.datetime = None):
     database = g_context.database
     active_vote = database.get_active_vote()
     if active_vote is not None:
@@ -305,7 +321,7 @@ async def start_new_vote():
     parsed_tasks = [model.ParsedTask.from_task(task) for task in tasks]
 
     start_time = datetime.datetime.now()
-    end_time = utils.round_datetime(start_time + datetime.timedelta(seconds=config.voting_time_seconds))
+    end_time = end_time_override or utils.round_datetime(start_time + datetime.timedelta(seconds=config.voting_time_seconds))
 
     evaluated_tasks = [task.description.evaluate() for task in parsed_tasks]
     message_choices = "\n".join([f"{number_reactions[idx]} {task}" for idx, task in enumerate(evaluated_tasks)])
@@ -382,10 +398,10 @@ async def edit(ctx: commands.Context, task_id: int, template: str):
     await ctx.send(f"Successfully updated task **{task_id}**: {existing_task.description}")
 
 @bot.command()
-async def startvote(ctx: commands.Context):
+async def startvote(ctx: commands.Context, end_time: int = None):
     if not is_bingo_admin(ctx.author):
         return
-    await start_new_vote()
+    await start_new_vote(end_time_override=datetime.datetime.fromtimestamp(end_time) if end_time is not None else None)
 
 @bot.command()
 async def activetask(ctx: commands.Context):
@@ -418,6 +434,27 @@ async def completions(ctx: commands.Context):
         await ctx.send(embed=embed)
     else:
         await ctx.send("No active task")
+
+@bot.command()
+async def reloadtasks(ctx: commands.Context):
+    if not is_bingo_admin(ctx.author):
+        return
+    g_context.database.delete_all_tasks()
+    with open(config.tasks_filename, "r") as f:
+        tasks = f.readlines()
+    parsed_tasks = []
+    for index, task in enumerate(tasks):
+        parts = task.split(";")
+        if len(parts) == 2:
+            parsed_tasks.append(
+                model.Task(
+                    id=index + 1,
+                    description=parts[0],
+                    weight=1,
+                    instruction=parts[1],
+                )
+            )
+    g_context.database.insert_tasks(parsed_tasks)
 
 def handle_errors(*cmds):
     for cmd in cmds:

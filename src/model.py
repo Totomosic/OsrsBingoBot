@@ -139,7 +139,7 @@ class DatabaseConnection:
         self.connection = psycopg2.connect(dsn=dsn)
 
     def get_tasks(self):
-        return select_multiple_with_model(Task, self.connection, f"SELECT * FROM {TASKS_TABLE}")
+        return select_multiple_with_model(Task, self.connection, f"SELECT * FROM {TASKS_TABLE} ORDER BY id ASC")
 
     def get_task_by_id(self, task_id: int):
         return select_with_model(Task, self.connection, f"SELECT * FROM {TASKS_TABLE} WHERE id = %s", task_id)
@@ -156,6 +156,12 @@ class DatabaseConnection:
                 insert_model(task, self.connection, TASKS_TABLE)
             except psycopg2.errors.UniqueViolation:
                 pass
+
+    def delete_all_tasks(self):
+        cursor = self.connection.cursor()
+        cursor.execute(f"DELETE FROM {TASKS_TABLE}")
+        cursor.close()
+        self.connection.commit()
 
     def update_task(self, task: Task):
         update_model(task, self.connection, TASKS_TABLE)
@@ -207,6 +213,12 @@ class DatabaseConnection:
     def update_vote(self, vote: TaskVote):
         update_model(vote, self.connection, TASK_VOTING_TABLE)
 
+    def delete_vote(self, vote: TaskVote):
+        cursor = self.connection.cursor()
+        cursor.execute(f"DELETE FROM {TASK_VOTING_TABLE} WHERE id = %s", [vote.id])
+        cursor.close()
+        self.connection.commit()
+
     def add_vote_option(self, option: TaskVoteOption):
         insert_model(option, self.connection, TASK_VOTING_OPTION_TABLE)
 
@@ -228,7 +240,7 @@ class DatabaseConnection:
             --DROP TABLE IF EXISTS {TASK_INSTANCES_TABLE} CASCADE;
             CREATE TABLE IF NOT EXISTS {TASK_INSTANCES_TABLE} (
                 id SERIAL PRIMARY KEY,
-                task_id INTEGER NOT NULL,
+                task_id INTEGER,
                 evaluated_task VARCHAR(255) NOT NULL,
                 start_time TIMESTAMP NOT NULL,
                 end_time TIMESTAMP,
@@ -269,7 +281,7 @@ class DatabaseConnection:
                 id SERIAL PRIMARY KEY,
                 vote_id INTEGER NOT NULL,
                 option_index INTEGER NOT NULL,
-                task_id INTEGER NOT NULL,
+                task_id INTEGER,
                 evaluated_task VARCHAR(255),
                 FOREIGN KEY (vote_id) REFERENCES {TASK_VOTING_TABLE}(id) ON DELETE CASCADE,
                 FOREIGN KEY (task_id) REFERENCES {TASKS_TABLE}(id) ON DELETE SET NULL
