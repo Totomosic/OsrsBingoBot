@@ -52,6 +52,7 @@ class TaskInstance:
     end_time: datetime.datetime
     channel_id: str
     message_id: str
+    drawn_prize: bool
 
 @dataclasses.dataclass
 class TaskCompletion:
@@ -162,12 +163,18 @@ class DatabaseConnection:
     def get_active_task_instance(self):
         return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s", datetime.datetime.now())
 
+    def get_unclaimed_tasks(self):
+        return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE drawn_prize = false ORDER BY end_time ASC")
+
     def create_task_instance(self, new_task: TaskInstance):
         active_instance = self.get_active_task_instance()
         if active_instance is not None:
             active_instance.end_time = datetime.datetime.now()
             update_model(active_instance, self.connection, TASK_INSTANCES_TABLE)
         insert_model(new_task, self.connection, TASK_INSTANCES_TABLE)
+
+    def update_task_instance(self, task_instance: TaskInstance):
+        update_model(task_instance, self.connection, TASK_INSTANCES_TABLE)
 
     def get_most_recent_task_instance(self):
         return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} ORDER BY end_time DESC LIMIT 1")
@@ -227,7 +234,8 @@ class DatabaseConnection:
                 end_time TIMESTAMP,
                 channel_id VARCHAR(128),
                 message_id VARCHAR(128),
-                FOREIGN KEY (task_id) REFERENCES {TASKS_TABLE}(id)
+                drawn_prize BOOLEAN,
+                FOREIGN KEY (task_id) REFERENCES {TASKS_TABLE}(id) ON DELETE SET NULL
             )
         """)
         cursor.execute(f"""
@@ -240,7 +248,7 @@ class DatabaseConnection:
                 completion_time TIMESTAMP,
                 evidence_channel_id VARCHAR(128),
                 evidence_message_id VARCHAR(128),
-                FOREIGN KEY (instance_id) REFERENCES {TASK_INSTANCES_TABLE}(id),
+                FOREIGN KEY (instance_id) REFERENCES {TASK_INSTANCES_TABLE}(id) ON DELETE CASCADE,
                 UNIQUE (instance_id, user_id)
             )
         """)
@@ -263,8 +271,8 @@ class DatabaseConnection:
                 option_index INTEGER NOT NULL,
                 task_id INTEGER NOT NULL,
                 evaluated_task VARCHAR(255),
-                FOREIGN KEY (vote_id) REFERENCES {TASK_VOTING_TABLE}(id),
-                FOREIGN KEY (task_id) REFERENCES {TASKS_TABLE}(id)
+                FOREIGN KEY (vote_id) REFERENCES {TASK_VOTING_TABLE}(id) ON DELETE CASCADE,
+                FOREIGN KEY (task_id) REFERENCES {TASKS_TABLE}(id) ON DELETE SET NULL
             )
         """)
         cursor.close()

@@ -9,7 +9,7 @@ import json
 import logging
 import math
 import os
-import time
+import random
 import traceback
 
 from discord.message import Message
@@ -33,6 +33,7 @@ class BotConfig:
     voting_task_count: int
     task_duration_seconds: int
     admin_role_id: int
+    winner_task_count: int
 
 @dataclasses.dataclass
 class BotContext:
@@ -80,6 +81,7 @@ class BingoBot(commands.Bot):
         self.loop.create_task(self.reaction_removed_watcher())
         self.loop.create_task(self.vote_start_watcher())
         self.loop.create_task(self.vote_ended_watcher())
+        self.loop.create_task(self.winner_watcher())
 
     async def vote_start_watcher(self):
         while True:
@@ -98,6 +100,34 @@ class BingoBot(commands.Bot):
             if active_vote is not None and active_vote.end_time < now:
                 await finish_vote(active_vote)
             await asyncio.sleep(3)
+
+    async def winner_watcher(self):
+        while True:
+            unclaimed_tasks = g_context.database.get_unclaimed_tasks()
+            if len(unclaimed_tasks) >= config.winner_task_count:
+                all_task_completions: list[model.TaskCompletion] = []
+                for task in unclaimed_tasks:
+                    all_task_completions += g_context.database.get_task_completions(task.id)
+                channel = g_context.announcement_channel
+                if len(all_task_completions) > 0:
+                    winner = random.choice(all_task_completions)
+                    user = self.get_user(int(winner.user_id))
+                    while user is None and len(all_task_completions) > 1:
+                        all_task_completions.remove(winner)
+                        winner = random.choice(all_task_completions)
+                        user = self.get_user(int(winner.user_id))
+                    if user is not None:
+                        embed = discord.Embed(title="Congratuations!")
+                        embed.description = f"The winner is {user.mention}"
+                        await channel.send(embed=embed)
+                else:
+                    embed = discord.Embed(title="Congratuations!")
+                    embed.description = f"No winners"
+                    await channel.send(embed=embed)
+                for task in unclaimed_tasks:
+                    task.drawn_prize = True
+                    g_context.database.update_task_instance(task)
+            await asyncio.sleep(60)
 
     async def reaction_added_watcher(self):
         while True:
@@ -198,14 +228,19 @@ number_reactions = [
 async def end_task(task_instance: model.TaskInstance):
     channel = g_context.announcement_channel
     message = channel.get_partial_message(task_instance.message_id)
+    if not message:
+        return
     message = await message.fetch()
+    if not message:
+        return
 
-    task = g_context.database.get_task_by_id(task_instance.task_id)
+    await message.delete()
 
-    embed = discord.Embed(title="Ended Task")
-    embed.description = f"{task_instance.evaluated_task}\n\n**Submission Instructions:**\n{task.instruction}\n\nEnded at <t:{int(task_instance.end_time.timestamp())}>"
-    embed.color = 0xFF0000
-    await message.edit(embed=embed)
+    # task = g_context.database.get_task_by_id(task_instance.task_id)
+    # embed = discord.Embed(title="Ended Task")
+    # embed.description = f"{task_instance.evaluated_task}\n\n**Submission Instructions:**\n{task.instruction}\n\nEnded at <t:{int(task_instance.end_time.timestamp())}>"
+    # embed.color = 0xFF0000
+    # await message.edit(embed=embed)
 
 async def cancel_vote(vote: model.TaskVote):
     channel = g_context.announcement_channel
@@ -248,6 +283,7 @@ async def finish_vote(vote: model.TaskVote):
         end_time=utils.round_datetime(datetime.datetime.now() + datetime.timedelta(seconds=config.task_duration_seconds)),
         channel_id=channel.id,
         message_id=message.id,
+        drawn_prize=False,
     )
     g_context.database.create_task_instance(new_task)
 
@@ -265,7 +301,7 @@ async def start_new_vote():
     active_vote = database.get_active_vote()
     if active_vote is not None:
         await cancel_vote(active_vote)
-    tasks = g_context.database.get_random_tasks(config.voting_task_count)
+    tasks = database.get_random_tasks(config.voting_task_count)
     parsed_tasks = [model.ParsedTask.from_task(task) for task in tasks]
 
     start_time = datetime.datetime.now()
@@ -306,7 +342,7 @@ async def start_new_vote():
 # Setup bot commands
 
 @bot.command()
-async def list(ctx: commands.Context, page: int = 1):
+async def listtasks(ctx: commands.Context, page: int = 1):
     if not is_bingo_admin(ctx.author):
         return
     tasks = g_context.database.get_tasks()
@@ -315,7 +351,7 @@ async def list(ctx: commands.Context, page: int = 1):
     await paginator.send(ctx)
 
 @bot.command()
-async def task(ctx: commands.Context, task_id: int = None):
+async def gettask(ctx: commands.Context, task_id: int = None):
     if not is_bingo_admin(ctx.author):
         return
     if task_id is None:
