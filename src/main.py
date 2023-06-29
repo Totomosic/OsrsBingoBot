@@ -69,13 +69,14 @@ class BotLogger:
         self.channel = channel
 
     async def info(self, msg: str):
-        await self.channel.send(msg)
+        if self.channel is not None:
+            await self.channel.send(msg)
 
 class BingoBot(commands.Bot):
     async def on_ready(self):
         g_context.announcement_channel = self.get_channel(config.announcement_channel_id)
         g_context.submission_channel = self.get_channel(config.submission_channel_id)
-        log_channel = self.get_channel(config.log_channel_id)
+        log_channel = self.get_channel(config.log_channel_id) if config.log_channel_id is not None else None
         self.logger = BotLogger(log_channel)
         self.loop.create_task(self.reaction_added_watcher())
         self.loop.create_task(self.reaction_removed_watcher())
