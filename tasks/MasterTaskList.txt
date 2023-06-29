@@ -18,7 +18,7 @@ Get a Pharaoh's sceptre from Pyramid Plunder;Post a screenshot of the untradable
 Get {250,500,50}k Woodcutting xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Get {150,300,50}k Runecrafting xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Get 5 Giant Keys;Post a screenshot of your Giant Key stack in your invent, or the untradable drop message is still in your chat.
-Get {1200,2400,1200} Spiritflakes from Tempoross permits;Post a screenshot of your total spirit flakes from your Collection Log before and after.
+Get {1200,2400,600} Spiritflakes from Tempoross permits;Post a screenshot of your total spirit flakes from your Collection Log before and after.
 Get {50,100,10} Abyssal Pearls from GOTR;Post a screenshot of your total perls in your invent after you pull from the rewards guardian.
 Get {30,60,10} reward crates from Wintertodt;Post a screenshot of you opening 20 reward crates at the Wintertodt camp bank chest.
 Gain {150,300,50} Mahogany Homes points;Post a screenshot of your completed contracts before and after completing.

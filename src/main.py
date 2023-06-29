@@ -461,7 +461,8 @@ def handle_errors(*cmds):
     for cmd in cmds:
         @cmd.error
         async def error_handler(ctx: commands.Context, error):
-            await ctx.send(f"Failed to run command!\n{str(traceback.format_exc())}")
+            # await ctx.send(f"Failed to run command!\n{str(traceback.format_exc())}")
+            pass
 
 handle_errors(*bot.all_commands.values())
 
