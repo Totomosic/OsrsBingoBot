@@ -31,6 +31,7 @@ class BotConfig:
     voting_task_count: int
     task_duration_seconds: int
     admin_role_id: int
+    community_role_id: int
     winner_task_count: int
     log_filename: str
 
@@ -320,11 +321,16 @@ async def finish_vote(vote: model.TaskVote):
     )
     g_context.database.create_task_instance(new_task)
 
+    role = g_context.announcement_channel.guild.get_role(config.community_role_id)
+    content = ""
+    if role is not None:
+        content = role.mention
+
     embed = discord.Embed()
     embed.title = "Current Task"
     embed.description = f"{selected_option.evaluated_task}\n\n**Submission Instructions:**\n{submission_instructions}\nPost all screenshots as **one message** in {g_context.submission_channel.jump_url}\n\nEnds <t:{int(new_task.end_time.timestamp())}:R>"
     embed.color = 0x00FF00
-    await message.edit(embed=embed)
+    await message.edit(content=content, embed=embed)
 
     logging.info(f"Vote finished, winning index {selected_index}")
     logging.info(f"Selected task: {new_task.evaluated_task} (TaskId={selected_option.task_id}) (TaskInstanceId={new_task.id})")
@@ -351,7 +357,11 @@ async def start_new_vote(end_time_override: datetime.datetime = None):
         color=0x0099FF,
         description=f"Voting ends <t:{int(end_time.timestamp())}:R>\n\n" + message_choices
     )
-    message = await g_context.announcement_channel.send(embed=embed)
+    role = g_context.announcement_channel.guild.get_role(config.community_role_id)
+    content = ""
+    if role is not None:
+        content = role.mention
+    message = await g_context.announcement_channel.send(content=content, embed=embed)
     for i in range(config.voting_task_count):
         await message.add_reaction(number_reactions[i])
 
