@@ -8,8 +8,6 @@ from typing import Type, Generic, TypeVar, Union
 import templates
 import utils
 
-logging.basicConfig(level=logging.INFO)
-
 T = TypeVar("T")
 
 @dataclasses.dataclass
@@ -42,11 +40,15 @@ class ParsedTask:
             instruction=task.instruction,
             weight=task.weight,
         )
+    
+TASK_TYPE_STANDARD = "Standard"
+TASK_TYPE_BONUS = "Bonus"
 
 @dataclasses.dataclass
 class TaskInstance:
     id: int
     task_id: int
+    task_type: str
     evaluated_task: str
     start_time: datetime.datetime
     end_time: datetime.datetime
@@ -167,7 +169,7 @@ class DatabaseConnection:
         update_model(task, self.connection, TASKS_TABLE)
 
     def get_active_task_instance(self):
-        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s", datetime.datetime.now())
+        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s AND task_type = %s", datetime.datetime.now(), TASK_TYPE_STANDARD)
 
     def get_unclaimed_tasks(self):
         return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE drawn_prize = false ORDER BY end_time ASC")
@@ -177,7 +179,8 @@ class DatabaseConnection:
         if active_instance is not None:
             active_instance.end_time = datetime.datetime.now()
             update_model(active_instance, self.connection, TASK_INSTANCES_TABLE)
-        insert_model(new_task, self.connection, TASK_INSTANCES_TABLE)
+        task_id = insert_model(new_task, self.connection, TASK_INSTANCES_TABLE, return_col_name="id")
+        new_task.id = task_id
 
     def update_task_instance(self, task_instance: TaskInstance):
         update_model(task_instance, self.connection, TASK_INSTANCES_TABLE)
@@ -241,6 +244,7 @@ class DatabaseConnection:
             CREATE TABLE IF NOT EXISTS {TASK_INSTANCES_TABLE} (
                 id SERIAL PRIMARY KEY,
                 task_id INTEGER,
+                task_type VARCHAR(64) NOT NULL,
                 evaluated_task VARCHAR(255) NOT NULL,
                 start_time TIMESTAMP NOT NULL,
                 end_time TIMESTAMP,

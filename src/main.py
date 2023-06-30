@@ -19,8 +19,6 @@ import model
 import templates
 import utils
 
-logging.basicConfig(level=logging.INFO)
-
 @dataclasses.dataclass
 class BotConfig:
     bot_token: str
@@ -34,6 +32,7 @@ class BotConfig:
     task_duration_seconds: int
     admin_role_id: int
     winner_task_count: int
+    log_filename: str
 
 @dataclasses.dataclass
 class BotContext:
@@ -52,11 +51,19 @@ def get_config_from_args() -> BotConfig:
     with open(args.config_filename, "r") as f:
         config_data = json.load(f)
 
-    return BotConfig(
+    config = BotConfig(
         **config_data,
         database_dsn=os.environ["DB_URI"],
         voting_task_count=3,
     )
+    logging.basicConfig(
+        filename=config.log_filename,
+        filemode='a',
+        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+        datefmt='%H:%M:%S',
+        level=logging.INFO,
+    )
+    return config
 
 # Initialize bot
 
@@ -83,6 +90,7 @@ class BingoBot(commands.Bot):
         self.loop.create_task(self.vote_start_watcher())
         self.loop.create_task(self.vote_ended_watcher())
         self.loop.create_task(self.winner_watcher())
+        logging.info("Bot online")
 
     async def vote_start_watcher(self):
         while True:
@@ -285,16 +293,24 @@ async def finish_vote(vote: model.TaskVote):
                 reaction_counts.append((index, reaction.count))
     await message.clear_reactions()
 
+    if len(reaction_counts) == 0:
+        return
+
     reaction_counts.sort(key=lambda pair: pair[1], reverse=True)
     selected_index = reaction_counts[0][0]
 
     selected_option = vote_options[selected_index]
     selected_task = g_context.database.get_task_by_id(selected_option.task_id)
 
+    submission_instructions = ""
+    if selected_task is not None:
+        submission_instructions = selected_task.instruction
+
     previous_task = g_context.database.get_most_recent_task_instance()
     new_task = model.TaskInstance(
         id=None,
         task_id=selected_option.task_id,
+        task_type=model.TASK_TYPE_STANDARD,
         evaluated_task=selected_option.evaluated_task,
         start_time=datetime.datetime.now(),
         end_time=utils.round_datetime(datetime.datetime.now() + datetime.timedelta(seconds=config.task_duration_seconds)),
@@ -306,9 +322,12 @@ async def finish_vote(vote: model.TaskVote):
 
     embed = discord.Embed()
     embed.title = "Current Task"
-    embed.description = f"{selected_option.evaluated_task}\n\n**Submission Instructions:**\n{selected_task.instruction}\nPost all screenshots in {g_context.submission_channel.jump_url}\n\nEnds <t:{int(new_task.end_time.timestamp())}:R>"
+    embed.description = f"{selected_option.evaluated_task}\n\n**Submission Instructions:**\n{submission_instructions}\nPost all screenshots as **one message** in {g_context.submission_channel.jump_url}\n\nEnds <t:{int(new_task.end_time.timestamp())}:R>"
     embed.color = 0x00FF00
     await message.edit(embed=embed)
+
+    logging.info(f"Vote finished, winning index {selected_index}")
+    logging.info(f"Selected task: {new_task.evaluated_task} (TaskId={selected_option.task_id}) (TaskInstanceId={new_task.id})")
 
     if previous_task is not None:
         await end_task(previous_task)
@@ -355,6 +374,10 @@ async def start_new_vote(end_time_override: datetime.datetime = None):
             evaluated_task=evaluated_tasks[i],
         )
         database.add_vote_option(option)
+
+    logging.info(f"Starting vote with {config.voting_task_count} options")
+    for i in range(config.voting_task_count):
+        logging.info(f"\t{i + 1}. {evaluated_tasks[i]} (TaskId={tasks[i].id})")
 
 # Setup bot commands
 
@@ -456,6 +479,15 @@ async def reloadtasks(ctx: commands.Context):
                 )
             )
     g_context.database.insert_tasks(parsed_tasks)
+
+@bot.command()
+async def testpermissions(ctx: commands.Context):
+    message = await ctx.send("Test message")
+    await message.add_reaction(BOT_ACKNOWLEDGE_REACTION)
+    await asyncio.sleep(2)
+    await message.remove_reaction(BOT_ACKNOWLEDGE_REACTION, bot.user)
+    await asyncio.sleep(2)
+    await message.delete()
 
 def handle_errors(*cmds):
     for cmd in cmds:
