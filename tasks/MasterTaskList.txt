@@ -1,6 +1,6 @@
 Get {2,4} Barrow's armor pieces;Post a screenshot of you getting a Barrows unique
 Get {15,30,5} LMS points;Post your before and after LMS log
-Get {40,75,5} pearls from Aerial Fishing;Post a stack of 10 pearls in your invent after fishing them while on Molch Island
+Get {40,75,5} pearls from Aerial Fishing;Post a stack of the pearls in your invent after fishing them while on Molch Island
 Get {50,100,10} Sarachnis kc;Post a screenshot of your Sarachnis kc before and after
 Do {150,250,5} laps of any agility rooftop courses;Post a screenshot of your before and after laps completed at Grace in Burthorpe
 Get {750,1000,50}k total xp;XP is tracked from Wise Old Man, post a screenshot with the date range selected.
@@ -50,7 +50,7 @@ Make {25,50,5} swords in the Giants Foundry;Post a screenshot of your kc before 
 Complete a Master clue;Post a screenshot of your collection log before and after completing the clues.
 Get {250,500,50}k Smithing xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Get an Odium or Malediction shard;Post a screenshot of either the collection log popup or loot in your inventory after completing.
-Achieve 6 total combat achievement points;Post a screenshot of your Combat achievement interface showing your total points before and after completing.
+Achieve {6,10,1} total combat achievement points;Post a screenshot of your Combat achievement interface showing your total points before and after completing.
 Get {30,60,10} Zulrah kc;Post a screenshot of your kc before and after completing.
 Get {250,500,50}k Prayer xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Complete {5,10,1} Hard clues;Post a screenshot of your collection log before and after completing the clues.
@@ -91,4 +91,4 @@ Complete any raid {2,6,1} times, if you get a unique, you have to the back to ba
 Obtain a Dragon Pickaxe or Dragon 2h sword from any source;post a screenshot of the valuable drop in the chatbox.
 Get a 2m+ drop from any source;post a screenshot of the valuable drop in the chatbox.
 Get {5,10,1} Corporal Beast kc;Post a screenshot of your boss kc before and after completing.
-Obtain 1 pet;Post a screenshot of your chatbox showing that you have a funny feeling you have/would have been followed. Chompy chick accepted.
+Obtain a pet;Post a screenshot of your chatbox showing that you have a funny feeling you have/would have been followed. Chompy chick accepted.
