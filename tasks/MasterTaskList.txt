@@ -4,7 +4,7 @@ Get {40,75,5} pearls from Aerial Fishing;Post a stack of the pearls in your inve
 Get {50,100,10} Sarachnis kc;Post a screenshot of your Sarachnis kc before and after
 Do {150,250,5} laps of any agility rooftop courses;Post a screenshot of your before and after laps completed at Grace in Burthorpe
 Get {750,1000,50}k total xp;XP is tracked from Wise Old Man, post a screenshot with the date range selected.
-Catch {200,400,25} imps of any kind;Post your invent of stacked of imps while in Puro-Puro after catching them
+Catch {200,400,25} implings of any kind;Post your invent of stacked of imps while in Puro-Puro after catching them
 Hunt {200,350,25} Herbiboar;Post a screenshot of your kc before and after.
 Get 5 Mossy Keys;Post a screenshot of your Mossy Key stack in your invent, or the untradable drop message is still in your chat.
 Do {25,50,5} beginner clues;Post a screenshot of your collection log before and after completing the clues.
@@ -23,20 +23,20 @@ Get {50,100,10} Abyssal Pearls from GOTR;Post a screenshot of your total perls i
 Get {30,60,10} reward crates from Wintertodt;Post a screenshot of you opening 20 reward crates at the Wintertodt camp bank chest.
 Gain {150,300,50} Mahogany Homes points;Post a screenshot of your completed contracts before and after completing.
 Get {30,50,5} Zalcano kc;Post a screenshot of your kc before and after completing.
-Get {20,50,10} total God Wars Dungeon kc;Post a screenshot of your kc before and after completing this does not include mass Nex.
+Get {20,50,10} total God Wars Dungeon boss kc;Post a screenshot of your kc before and after completing this does not include Nex on the mass worlds.
 Get {20,40,10} Barrows kc;Post a screenshot of your kc before and after completing.
 Get {30,60,10} Vorkath kc;Post a screenshot of your kc before and after completing.
-Do {15,30,5} mediums clues & 5 easy clues;Post a screenshot of your collection log before and after completing the clues.
-Complete {2,6,1} Tombs of Amascut kc;Post a screenshot of your kc before and after completing.
+Do {15,30,5} mediums clues;Post a screenshot of your collection log before and after completing the clues.
+Complete {5,10,1} Tombs of Amascut kc;Post a screenshot of your kc before and after completing.
 Do 10 slayer tasks (must be from either Nieve/Steve/Konar/Duradel/Krystilia);Post a screenshot of your completed Slayer task streak before and after completing.
 Get {100,150,10} Tithe Farm points;Post a screenshot of your completed points before and after completing.
 Catch {200,500,100} Chinchompas of any kind;Post a screenshot of your stack of caught Chinchompas while in a Chinchompa hunter area.
-Complete {2,6,1} Chambers of Xeric kc;Post a screenshot of your kc before and after completing.
+Complete {5,10,1} Chambers of Xeric kc;Post a screenshot of your kc before and after completing.
 Get {15,30,5} Kalphite queen kc;Post a screenshot of your kc before and after completing.
 Complete {20,40,5} Gauntlet kc (blue or/and red);Post a screenshot of your kc before and after completing.
 Get {500,1000,100}k Thieving xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Get {30,60,10} King Black Dragon kc;Post a screenshot of your kc before and after completing.
-Complete {2,6,1} Theatre of Blood kc;Post a screenshot of your kc before and after completing.
+Complete {5,10,1} Theatre of Blood kc;Post a screenshot of your kc before and after completing.
 Get 3 Jad kc or 1 Inferno kc;Post a screenshot of your kc before and after completing.
 Gain 500k xp in any skill of your choice;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Get any Champion scroll;Post a screenshot of the drop message from your chat box.
@@ -87,7 +87,7 @@ Get a Tempoross unique OR the 25 Soaked Pages drop:Post a screenshot of the new 
 Get 3 Ecumenical Keys. If you already have max keys, use 3 then get 3 more;Post a screenshot of 3 Ecumenical keys in your invent while at the Wildy God Wars Dungeon.
 Get {50,100,10}k ancient essence from the Phantom Muspah;Post a screenshot of your total essence before and after completion.
 Get {500,750,50} Firemaking xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
-Complete any raid {2,6,1} times, if you get a unique, you have to the back to back;Post a screenshot of your log and kc before and after completion.
+Complete any raid {5,10,1} times, if you get a unique, you have to do the back to back;Post a screenshot of your log and kc before and after completion.
 Obtain a Dragon Pickaxe or Dragon 2h sword from any source;post a screenshot of the valuable drop in the chatbox.
 Get a 2m+ drop from any source;post a screenshot of the valuable drop in the chatbox.
 Get {5,10,1} Corporal Beast kc;Post a screenshot of your boss kc before and after completing.
