@@ -77,7 +77,7 @@ Gain {250,750,50}k Construction xp;XP is tracked from Wise Old Man, however you 
 Make 1000 Cannonballs;Post a screenshot of your Cannonball stack before and after completion in the submissions channel.
 Obtain {100,250,50}k gp from Thieving;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Obtain a unique from any raids drop table. Can be a duplicate;Post a screenshot of your collection log popup or chat box message.
-Farm over 90 Herbs in one run;Post a screenshot of your stack of noted Herbs after completing your successful Herb run.
+Farm over 85 Herbs in one run;Post a screenshot of your stack of noted Herbs after completing your successful Herb run.
 Get a third age or guilded piece;Post a screenshot of your collection log popup.
 Do Barrows until you get an Elite clue;Post a screenshot of your Barrows chest containing an Elite clue.
 Kill the Priff Rabbit boss;Post a screenshot of the Crystal Grail collection log popup or the item in your invent.
