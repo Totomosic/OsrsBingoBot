@@ -110,7 +110,7 @@ def insert_model(model: T, connection: "psycopg2.connection", table_name: str, r
     cursor = connection.cursor()
     fields = model.__dataclass_fields__.keys()
     included_fields = [field for field in fields if field != "id" or getattr(model, field) is not None]
-    values = [f"{str(getattr(model, field))}" for field in included_fields]
+    values = [getattr(model, field) for field in included_fields]
     try:
         columns_str = ', '.join(included_fields)
         returning = f" RETURNING {return_col_name}" if return_col_name is not None else ""
@@ -130,7 +130,7 @@ def update_model(model: T, connection: "psycopg2.connection", table_name: str):
     parameters = []
     for field in model.__dataclass_fields__.keys():
         parameters.append(field)
-        parameters.append(str(getattr(model, field)))
+        parameters.append(getattr(model, field))
     parameters_arr = [f"{parameters[i * 2]}=%s" for i in range(len(parameters) // 2)]
     cursor.execute(f"UPDATE {table_name} SET {', '.join(parameters_arr)} WHERE id = %s", [*[param for idx, param in enumerate(parameters) if idx % 2 == 1], model.id])
     cursor.close()
@@ -143,14 +143,23 @@ class DatabaseConnection:
     def get_tasks(self):
         return select_multiple_with_model(Task, self.connection, f"SELECT * FROM {TASKS_TABLE} ORDER BY id ASC")
 
+    def get_standard_tasks(self):
+        return [task for task in self.get_tasks() if task.weight > 0]
+
     def get_task_by_id(self, task_id: int):
         return select_with_model(Task, self.connection, f"SELECT * FROM {TASKS_TABLE} WHERE id = %s", task_id)
 
     def get_random_task(self):
-        return random.choice(self.get_tasks())
+        return random.choice(self.get_standard_tasks())
 
     def get_random_tasks(self, ntasks: int):
-        return random.choices(self.get_tasks(), k=ntasks)
+        return random.choices(self.get_standard_tasks(), k=ntasks)
+
+    def insert_task(self, task: Task):
+        insert_model(task, self.connection, TASKS_TABLE)
+
+    def get_max_task_id(self):
+        return select_with_model(int, self.connection, f"SELECT MAX(id) FROM {TASKS_TABLE}")
 
     def insert_tasks(self, tasks: list[Task]):
         for task in tasks:
@@ -168,14 +177,17 @@ class DatabaseConnection:
     def update_task(self, task: Task):
         update_model(task, self.connection, TASKS_TABLE)
 
-    def get_active_task_instance(self):
-        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s AND task_type = %s", datetime.datetime.now(), TASK_TYPE_STANDARD)
+    def get_active_task_instance(self, task_type: str = TASK_TYPE_STANDARD):
+        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s AND task_type = %s", datetime.datetime.now(), task_type)
+
+    def get_task_instance_by_time(self, timestamp: datetime.datetime, task_type: str = TASK_TYPE_STANDARD):
+        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s AND start_time < %s AND task_type = %s", timestamp, timestamp, task_type)
 
     def get_unclaimed_tasks(self):
         return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE drawn_prize = false ORDER BY end_time ASC")
 
     def create_task_instance(self, new_task: TaskInstance):
-        active_instance = self.get_active_task_instance()
+        active_instance = self.get_active_task_instance(task_type=new_task.task_type)
         if active_instance is not None:
             active_instance.end_time = datetime.datetime.now()
             update_model(active_instance, self.connection, TASK_INSTANCES_TABLE)
@@ -185,8 +197,8 @@ class DatabaseConnection:
     def update_task_instance(self, task_instance: TaskInstance):
         update_model(task_instance, self.connection, TASK_INSTANCES_TABLE)
 
-    def get_most_recent_task_instance(self):
-        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} ORDER BY end_time DESC LIMIT 1")
+    def get_most_recent_task_instance(self, task_type: str = TASK_TYPE_STANDARD):
+        return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE task_type = %s ORDER BY end_time DESC LIMIT 1", task_type)
 
     def get_task_completions(self, task_instance_id: int):
         return select_multiple_with_model(TaskCompletion, self.connection, f"SELECT * FROM {TASK_COMPLETIONS_TABLE} WHERE instance_id = %s", task_instance_id)

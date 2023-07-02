@@ -72,11 +72,17 @@ COMMAND_PREFIX = "!"
 
 BOT_ACKNOWLEDGE_REACTION = "✅"
 
+def get_task_type_from_message(message: discord.Message) -> str:
+    if message.content.strip().lower().startswith("bonus"):
+        return model.TASK_TYPE_BONUS
+    return model.TASK_TYPE_STANDARD
+
 class BotLogger:
     def __init__(self, channel: discord.TextChannel):
         self.channel = channel
 
     async def info(self, msg: str):
+        logging.info(msg)
         if self.channel is not None:
             await self.channel.send(msg)
 
@@ -101,6 +107,9 @@ class BingoBot(commands.Bot):
                 now = datetime.datetime.now()
                 if now + datetime.timedelta(seconds=config.voting_time_seconds) > active_task.end_time:
                     await start_new_vote()
+                    bonus_task = g_context.database.get_active_task_instance(task_type=model.TASK_TYPE_BONUS)
+                    if bonus_task is not None:
+                        await post_task_instance(bonus_task)
             await asyncio.sleep(3)
 
     async def vote_ended_watcher(self):
@@ -114,7 +123,8 @@ class BingoBot(commands.Bot):
     async def winner_watcher(self):
         while True:
             unclaimed_tasks = g_context.database.get_unclaimed_tasks()
-            if len(unclaimed_tasks) >= config.winner_task_count:
+            standard_unclaimed_tasks = [task for task in unclaimed_tasks if task.task_type == model.TASK_TYPE_STANDARD]
+            if len(standard_unclaimed_tasks) >= config.winner_task_count:
                 all_task_completions: list[model.TaskCompletion] = []
                 for task in unclaimed_tasks:
                     all_task_completions += g_context.database.get_task_completions(task.id)
@@ -149,14 +159,14 @@ class BingoBot(commands.Bot):
                 except discord.errors.NotFound:
                     return
                 if message.author.id != self.user.id:
-                    active_task = g_context.database.get_active_task_instance()
+                    active_task = g_context.database.get_task_instance_by_time(message.created_at, task_type=get_task_type_from_message(message))
                     if active_task is not None:
                         completion = model.TaskCompletion(
                             id=None,
                             instance_id=active_task.id,
                             user_id=message.author.id,
                             approver_id=reaction.user_id,
-                            completion_time=datetime.datetime.now(),
+                            completion_time=message.created_at,
                             evidence_channel_id=reaction.channel_id,
                             evidence_message_id=reaction.message_id,
                         )
@@ -164,9 +174,11 @@ class BingoBot(commands.Bot):
                         approver = self.get_user(completion.approver_id)
                         if g_context.database.add_task_completion(completion):
                             await message.add_reaction(BOT_ACKNOWLEDGE_REACTION)
-                            await self.logger.info(f"Added completion for user {user.mention} (Approved by {approver.mention})")
+                            await self.logger.info(f"Added completion for user {user.mention} (Approved by {approver.mention}) (Type={active_task.task_type})")
                         else:
                             await self.logger.info(f"Task has already been completed by {user.mention}")
+                    else:
+                        await self.logger.info(f"No active task to approve")
 
     async def reaction_removed_watcher(self):
         while True:
@@ -242,19 +254,23 @@ number_reactions = [
 ]
 
 async def end_task(task_instance: model.TaskInstance):
-    channel = g_context.announcement_channel
-    message = channel.get_partial_message(task_instance.message_id)
-    if not message:
-        return
-    try:
-        message = await message.fetch()
-    except discord.errors.NotFound:
-        return
+    task_instance.drawn_prize = True
+    g_context.database.update_task_instance(task_instance)
 
-    try:
-        await message.delete()
-    except discord.errors.NotFound:
-        return
+    channel = g_context.announcement_channel
+    if task_instance.message_id is not None:
+        message = channel.get_partial_message(task_instance.message_id)
+        if not message:
+            return
+        try:
+            message = await message.fetch()
+        except discord.errors.NotFound:
+            return
+        if message is not None:
+            try:
+                await message.delete()
+            except discord.errors.NotFound:
+                return
 
     # task = g_context.database.get_task_by_id(task_instance.task_id)
     # embed = discord.Embed(title="Ended Task")
@@ -270,6 +286,100 @@ async def cancel_vote(vote: model.TaskVote):
     except discord.errors.NotFound:
         pass
     g_context.database.delete_vote(vote)
+
+TASK_TYPE_TITLE = {
+    model.TASK_TYPE_STANDARD: "Current Task",
+    model.TASK_TYPE_BONUS: "Bonus Task",
+}
+
+TASK_TYPE_COLOR = {
+    model.TASK_TYPE_STANDARD: 0x00FF00,
+    model.TASK_TYPE_BONUS: 0xFF00FF,
+}
+
+async def post_task_instance(task_instance: model.TaskInstance):
+    task = g_context.database.get_task_by_id(task_instance.task_id)
+    if not task:
+        return False
+
+    role = g_context.announcement_channel.guild.get_role(config.community_role_id)
+    content = ""
+    if role is not None and task_instance.task_type == model.TASK_TYPE_STANDARD:
+        content = role.mention
+
+    task_description = f"{task_instance.evaluated_task}\n\n**Submission Instructions:**\n{task.instruction}\nPost all screenshots as **one message** in {g_context.submission_channel.jump_url}"
+    if task_instance.task_type == model.TASK_TYPE_BONUS:
+        task_description += "\n**Include the word \"Bonus\" at the start of your submission message**"
+    task_description += f"\n\nEnds <t:{int(task_instance.end_time.timestamp())}:R>"
+
+    embed = discord.Embed()
+    embed.title = TASK_TYPE_TITLE[task_instance.task_type]
+    embed.description = task_description
+    embed.color = TASK_TYPE_COLOR[task_instance.task_type]
+    task_message = await g_context.announcement_channel.send(content=content, embed=embed)
+
+    task_instance.message_id = task_message.id
+    task_instance.channel_id = g_context.announcement_channel.id
+    g_context.database.update_task_instance(task_instance)
+
+async def start_task(selected_task: model.Task, evaluated_task: str):
+    task_start_time = datetime.datetime.now()
+    task_end_time = utils.round_datetime(task_start_time + datetime.timedelta(seconds=config.task_duration_seconds))
+
+    previous_task = g_context.database.get_most_recent_task_instance()
+    new_task = model.TaskInstance(
+        id=None,
+        task_id=selected_task.id,
+        task_type=model.TASK_TYPE_STANDARD,
+        evaluated_task=evaluated_task,
+        start_time=task_start_time,
+        end_time=task_end_time,
+        channel_id=g_context.announcement_channel.id,
+        message_id=None,
+        drawn_prize=False,
+    )
+    g_context.database.create_task_instance(new_task)
+
+    await post_task_instance(new_task)
+
+    if previous_task is not None:
+        await end_task(previous_task)
+    previous_bonus_task = g_context.database.get_most_recent_task_instance(task_type=model.TASK_TYPE_BONUS)
+    if previous_bonus_task is not None:
+        await end_task(previous_bonus_task)
+    return new_task
+
+async def create_bonus_task(task_description: str, task_instruction: str):
+    active_standard_task = g_context.database.get_active_task_instance(task_type=model.TASK_TYPE_STANDARD)
+    if not active_standard_task:
+        return None
+
+    task = model.Task(
+        id=max(100000, g_context.database.get_max_task_id() + 1),
+        description=task_description,
+        instruction=task_instruction,
+        weight=0,
+    )
+    parsed_task = model.ParsedTask.from_task(task)
+    g_context.database.insert_task(task)
+    previous_task = g_context.database.get_most_recent_task_instance(task_type=model.TASK_TYPE_BONUS)
+
+    new_task_instance = model.TaskInstance(
+        id=None,
+        task_id=task.id,
+        task_type=model.TASK_TYPE_BONUS,
+        evaluated_task=parsed_task.description.evaluate(),
+        start_time=datetime.datetime.now(),
+        end_time=active_standard_task.end_time,
+        channel_id=None,
+        message_id=None,
+        drawn_prize=False,
+    )
+    g_context.database.create_task_instance(new_task_instance)
+
+    if previous_task:
+        await end_task(previous_task)
+    return new_task_instance
 
 async def finish_vote(vote: model.TaskVote):
     vote.completed = True
@@ -292,7 +402,7 @@ async def finish_vote(vote: model.TaskVote):
             index = number_reactions.index(str(reaction.emoji))
             if index < len(vote_options):
                 reaction_counts.append((index, reaction.count))
-    await message.clear_reactions()
+    await message.delete()
 
     if len(reaction_counts) == 0:
         return
@@ -303,40 +413,9 @@ async def finish_vote(vote: model.TaskVote):
     selected_option = vote_options[selected_index]
     selected_task = g_context.database.get_task_by_id(selected_option.task_id)
 
-    submission_instructions = ""
-    if selected_task is not None:
-        submission_instructions = selected_task.instruction
-
-    previous_task = g_context.database.get_most_recent_task_instance()
-    new_task = model.TaskInstance(
-        id=None,
-        task_id=selected_option.task_id,
-        task_type=model.TASK_TYPE_STANDARD,
-        evaluated_task=selected_option.evaluated_task,
-        start_time=datetime.datetime.now(),
-        end_time=utils.round_datetime(datetime.datetime.now() + datetime.timedelta(seconds=config.task_duration_seconds)),
-        channel_id=channel.id,
-        message_id=message.id,
-        drawn_prize=False,
-    )
-    g_context.database.create_task_instance(new_task)
-
-    role = g_context.announcement_channel.guild.get_role(config.community_role_id)
-    content = ""
-    if role is not None:
-        content = role.mention
-
-    embed = discord.Embed()
-    embed.title = "Current Task"
-    embed.description = f"{selected_option.evaluated_task}\n\n**Submission Instructions:**\n{submission_instructions}\nPost all screenshots as **one message** in {g_context.submission_channel.jump_url}\n\nEnds <t:{int(new_task.end_time.timestamp())}:R>"
-    embed.color = 0x00FF00
-    await message.edit(content=content, embed=embed)
-
+    new_task = await start_task(selected_task, evaluated_task=selected_option.evaluated_task)
     logging.info(f"Vote finished, winning index {selected_index}")
-    logging.info(f"Selected task: {new_task.evaluated_task} (TaskId={selected_option.task_id}) (TaskInstanceId={new_task.id})")
-
-    if previous_task is not None:
-        await end_task(previous_task)
+    logging.info(f"Selected task: {new_task.evaluated_task} (TaskId={selected_task.id}) (TaskInstanceId={new_task.id})")
 
 async def start_new_vote(end_time_override: datetime.datetime = None):
     database = g_context.database
@@ -392,10 +471,20 @@ async def start_new_vote(end_time_override: datetime.datetime = None):
 # Setup bot commands
 
 @bot.command()
+async def bonustask(ctx: commands.Context, task_description: str, task_instruction: str):
+    if not is_bingo_admin(ctx.author):
+        return
+    bonus_task = await create_bonus_task(task_description, task_instruction)
+    if bonus_task is not None:
+        await ctx.send(f"Bonus task created - {bonus_task.evaluated_task} - will be announced with next vote")
+    else:
+        logging.error(f"Failed to create bonus task")
+
+@bot.command()
 async def listtasks(ctx: commands.Context, page: int = 1):
     if not is_bingo_admin(ctx.author):
         return
-    tasks = g_context.database.get_tasks()
+    tasks = g_context.database.get_standard_tasks()
     formatted_tasks = [f"**{task.id}** {task.description}" for task in tasks]
     paginator = utils.Paginator(bot, formatted_tasks, per_page=25, start_page=page)
     await paginator.send(ctx)
@@ -503,8 +592,7 @@ def handle_errors(*cmds):
     for cmd in cmds:
         @cmd.error
         async def error_handler(ctx: commands.Context, error):
-            # await ctx.send(f"Failed to run command!\n{str(traceback.format_exc())}")
-            pass
+            await ctx.send(f"Failed to run command!\n{str(traceback.format_exc())}")
 
 handle_errors(*bot.all_commands.values())
 
