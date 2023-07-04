@@ -54,13 +54,13 @@ Achieve {6,10,1} total combat achievement points;Post a screenshot of your Comba
 Get {30,60,10} Zulrah kc;Post a screenshot of your kc before and after completing.
 Get {250,500,50}k Prayer xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Complete {5,10,1} Hard clues;Post a screenshot of your collection log before and after completing the clues.
-Get {50,150,50} Dagganoth Kings kc;Post a screenshot of your kc before and after completing.
+Get {50,150,50} Dagannoth Kings kc;Post a screenshot of your kc before and after completing.
 Get {10,20,2} Brimstone Keys;Post a screenshot of your Brimstone Key stack in your invent, or the untradable drop message is still in your chat.
 Get a Wintertodt crate with 28 rolls (13500 point game);Post a screenshot of the total points totalling over 13500 before defeating the boss.
 Get a new boss specific collection log item;Post a screenshot of the collection log popup.
 Get {30,60,10} Phantom Muspah kc;Post a screenshot of your kc before and after completing.
-Gain {250,500,50} Fletching xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
-Gain {100,300,50} Herblore xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
+Gain {250,500,50}k Fletching xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
+Gain {100,300,50}k Herblore xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Gain 75k Smithing xp via an anvil;Post a screenshot of you standing at an anvil after completion, XP is tracked from Wise Old Man.
 Thieve {2,6,2} Ranarr seeds from Master Farmers;Post a screenshot of a stack of 20 Ranarr seeds in your invent while standing next to a Master Farmer after completion.
 Obtain {150,200,10} Slayer points;Post a screenshot of your completed Slayer points before and after completing.
@@ -86,9 +86,9 @@ Kill each God Wars Dungeon boss twice;Post a screenshot of your kc before and af
 Get a Tempoross unique OR the 25 Soaked Pages drop:Post a screenshot of the new unique item shown in your chatbox while standing at the rewards pool.
 Get 3 Ecumenical Keys. If you already have max keys, use 3 then get 3 more;Post a screenshot of 3 Ecumenical keys in your invent while at the Wildy God Wars Dungeon.
 Get {50,100,10}k ancient essence from the Phantom Muspah;Post a screenshot of your total essence before and after completion.
-Get {500,750,50} Firemaking xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
+Get {500,750,50}k Firemaking xp;XP is tracked from Wise Old Man, however you can also set an xp goal in game.
 Complete any raid {5,10,1} times, if you get a unique, you have to do the back to back;Post a screenshot of your log and kc before and after completion.
 Obtain a Dragon Pickaxe or Dragon 2h sword from any source;post a screenshot of the valuable drop in the chatbox.
 Get a 2m+ drop from any source;post a screenshot of the valuable drop in the chatbox.
-Get {5,10,1} Corporal Beast kc;Post a screenshot of your boss kc before and after completing.
+Get {5,10,1} Corporeal Beast kc;Post a screenshot of your boss kc before and after completing.
 Obtain a pet;Post a screenshot of your chatbox showing that you have a funny feeling you have/would have been followed. Chompy chick accepted.

@@ -28,6 +28,7 @@ class BotConfig:
     submission_channel_id: int
     log_channel_id: int
     voting_time_seconds: int
+    task_start_delay_seconds: int
     voting_task_count: int
     task_duration_seconds: int
     admin_role_id: int
@@ -97,6 +98,7 @@ class BingoBot(commands.Bot):
         self.loop.create_task(self.vote_start_watcher())
         self.loop.create_task(self.vote_ended_watcher())
         self.loop.create_task(self.winner_watcher())
+        self.loop.create_task(self.task_start_watcher())
         logging.info("Bot online")
 
     async def vote_start_watcher(self):
@@ -110,6 +112,30 @@ class BingoBot(commands.Bot):
                     bonus_task = g_context.database.get_active_task_instance(task_type=model.TASK_TYPE_BONUS)
                     if bonus_task is not None:
                         await post_task_instance(bonus_task)
+            await asyncio.sleep(3)
+
+    async def task_start_watcher(self):
+        while True:
+            active_vote = g_context.database.get_active_vote()
+            if active_vote is not None and active_vote.selected_option_id is not None:
+                now = datetime.datetime.now()
+                if now - datetime.timedelta(seconds=config.task_start_delay_seconds) > active_vote.end_time:
+                    selected_option = g_context.database.get_vote_option_by_id(active_vote.selected_option_id)
+                    selected_task = g_context.database.get_task_by_id(selected_option.task_id)
+
+                    active_vote.completed = True
+                    g_context.database.update_vote(active_vote)
+
+                    new_task = await start_task(selected_task, evaluated_task=selected_option.evaluated_task)
+                    logging.info(f"Vote finished, winning index {selected_option.option_index}")
+                    logging.info(f"Selected task: {new_task.evaluated_task} (TaskId={selected_task.id}) (TaskInstanceId={new_task.id})")
+
+                    vote_message = g_context.announcement_channel.get_partial_message(active_vote.voting_message_id)
+                    if vote_message is not None:
+                        try:
+                            await vote_message.delete()
+                        except discord.NotFound:
+                            pass
             await asyncio.sleep(3)
 
     async def vote_ended_watcher(self):
@@ -382,9 +408,6 @@ async def create_bonus_task(task_description: str, task_instruction: str):
     return new_task_instance
 
 async def finish_vote(vote: model.TaskVote):
-    vote.completed = True
-    g_context.database.update_vote(vote)
-
     channel = g_context.announcement_channel
     message = channel.get_partial_message(vote.voting_message_id)
     if message is None:
@@ -402,20 +425,24 @@ async def finish_vote(vote: model.TaskVote):
             index = number_reactions.index(str(reaction.emoji))
             if index < len(vote_options):
                 reaction_counts.append((index, reaction.count))
-    await message.delete()
+    await message.clear_reactions()
 
     if len(reaction_counts) == 0:
         return
 
     reaction_counts.sort(key=lambda pair: pair[1], reverse=True)
-    selected_index = reaction_counts[0][0]
+    selected_index: int = reaction_counts[0][0]
 
     selected_option = vote_options[selected_index]
-    selected_task = g_context.database.get_task_by_id(selected_option.task_id)
+    vote.selected_option_id = selected_option.id
+    g_context.database.update_vote(vote)
 
-    new_task = await start_task(selected_task, evaluated_task=selected_option.evaluated_task)
-    logging.info(f"Vote finished, winning index {selected_index}")
-    logging.info(f"Selected task: {new_task.evaluated_task} (TaskId={selected_task.id}) (TaskInstanceId={new_task.id})")
+    embed = discord.Embed(
+        title="Vote ended",
+        color=0x0099FF,
+        description=f"**Selected task**\n{selected_option.evaluated_task}"
+    )
+    await message.edit(embed=embed)
 
 async def start_new_vote(end_time_override: datetime.datetime = None):
     database = g_context.database
@@ -426,7 +453,7 @@ async def start_new_vote(end_time_override: datetime.datetime = None):
     parsed_tasks = [model.ParsedTask.from_task(task) for task in tasks]
 
     start_time = datetime.datetime.now()
-    end_time = end_time_override or utils.round_datetime(start_time + datetime.timedelta(seconds=config.voting_time_seconds))
+    end_time = end_time_override or utils.round_datetime(start_time + datetime.timedelta(seconds=config.voting_time_seconds - config.task_start_delay_seconds))
 
     evaluated_tasks = [task.description.evaluate() for task in parsed_tasks]
     message_choices = "\n".join([f"{number_reactions[idx]} {task}" for idx, task in enumerate(evaluated_tasks)])
@@ -451,6 +478,7 @@ async def start_new_vote(end_time_override: datetime.datetime = None):
         completed=False,
         voting_channel_id=str(g_context.announcement_channel.id),
         voting_message_id=str(message.id),
+        selected_option_id=None,
     )
     database.create_vote(vote_obj)
 
@@ -592,7 +620,8 @@ def handle_errors(*cmds):
     for cmd in cmds:
         @cmd.error
         async def error_handler(ctx: commands.Context, error):
-            await ctx.send(f"Failed to run command!\n{str(traceback.format_exc())}")
+            logging.error(traceback.format_exc())
+            # await ctx.send(f"Failed to run command!\n{str(traceback.format_exc())}")
 
 handle_errors(*bot.all_commands.values())
 

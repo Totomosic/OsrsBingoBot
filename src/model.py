@@ -74,6 +74,7 @@ class TaskVote:
     completed: bool
     voting_channel_id: str
     voting_message_id: str
+    selected_option_id: Union[int, None]
 
 @dataclasses.dataclass
 class TaskVoteOption:
@@ -166,7 +167,7 @@ class DatabaseConnection:
             try:
                 insert_model(task, self.connection, TASKS_TABLE)
             except psycopg2.errors.UniqueViolation:
-                pass
+                update_model(task, self.connection, TASKS_TABLE)
 
     def delete_all_tasks(self):
         cursor = self.connection.cursor()
@@ -240,6 +241,9 @@ class DatabaseConnection:
     def get_vote_options(self, task_vote_id: int):
         return select_multiple_with_model(TaskVoteOption, self.connection, f"SELECT * FROM {TASK_VOTING_OPTION_TABLE} WHERE vote_id = %s ORDER BY option_index ASC", task_vote_id)
 
+    def get_vote_option_by_id(self, option_id: int):
+        return select_with_model(TaskVoteOption, self.connection, f"SELECT * FROM {TASK_VOTING_OPTION_TABLE} WHERE id = %s", option_id)
+
     def initialize(self):
         cursor = self.connection.cursor()
         cursor.execute(f"""
@@ -303,5 +307,17 @@ class DatabaseConnection:
                 FOREIGN KEY (task_id) REFERENCES {TASKS_TABLE}(id) ON DELETE SET NULL
             )
         """)
+        cursor.close()
+        self.connection.commit()
+
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(f"""
+                ALTER TABLE {TASK_VOTING_TABLE}
+                ADD COLUMN selected_option_id INTEGER REFERENCES {TASK_VOTING_OPTION_TABLE}(id) ON DELETE SET NULL
+            """)
+            cursor.execute(f"""UPDATE {TASK_VOTING_TABLE} SET selected_option_id = (SELECT MIN(id) FROM {TASK_VOTING_OPTION_TABLE} WHERE vote_id = {TASK_VOTING_TABLE}.id) WHERE selected_option_id IS NULL""")
+        except psycopg2.errors.DuplicateColumn:
+            pass
         cursor.close()
         self.connection.commit()
