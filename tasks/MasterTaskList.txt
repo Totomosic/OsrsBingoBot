@@ -1,5 +1,5 @@
 Get {2,4} Barrow's armor pieces;Post a screenshot of you getting a Barrows unique
-Get {15,30,5} LMS points;Post your before and after LMS log
+Get {30,60,5} LMS points;Post your before and after LMS log
 Get {40,75,5} pearls from Aerial Fishing;Post a stack of the pearls in your invent after fishing them while on Molch Island
 Get {50,100,10} Sarachnis kc;Post a screenshot of your Sarachnis kc before and after
 Do {150,250,5} laps of any agility rooftop courses;Post a screenshot of your before and after laps completed at Grace in Burthorpe
@@ -30,7 +30,7 @@ Do {15,30,5} mediums clues;Post a screenshot of your collection log before and a
 Complete {5,10,1} Tombs of Amascut kc;Post a screenshot of your kc before and after completing.
 Do 10 slayer tasks (must be from either Nieve/Steve/Konar/Duradel/Krystilia);Post a screenshot of your completed Slayer task streak before and after completing.
 Get {100,150,10} Tithe Farm points;Post a screenshot of your completed points before and after completing.
-Catch {200,500,100} Chinchompas of any kind;Post a screenshot of your stack of caught Chinchompas while in a Chinchompa hunter area.
+Catch {400,1000,100} Chinchompas of any kind;Post a screenshot of your stack of caught Chinchompas while in a Chinchompa hunter area.
 Complete {5,10,1} Chambers of Xeric kc;Post a screenshot of your kc before and after completing.
 Get {15,30,5} Kalphite queen kc;Post a screenshot of your kc before and after completing.
 Complete {20,40,5} Gauntlet kc (blue or/and red);Post a screenshot of your kc before and after completing.
@@ -92,3 +92,4 @@ Obtain a Dragon Pickaxe or Dragon 2h sword from any source;post a screenshot of 
 Get a 2m+ drop from any source;post a screenshot of the valuable drop in the chatbox.
 Get {5,10,1} Corporeal Beast kc;Post a screenshot of your boss kc before and after completing.
 Obtain a pet;Post a screenshot of your chatbox showing that you have a funny feeling you have/would have been followed. Chompy chick accepted.
+Kill {15,30,5} Nightmare or Phosani's Nightmare;Post a screenshot of your Nightmare KC before and after.

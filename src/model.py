@@ -154,7 +154,7 @@ class DatabaseConnection:
         return random.choice(self.get_standard_tasks())
 
     def get_random_tasks(self, ntasks: int):
-        return random.choices(self.get_standard_tasks(), k=ntasks)
+        return random.sample(self.get_standard_tasks(), k=ntasks)
 
     def insert_task(self, task: Task):
         insert_model(task, self.connection, TASKS_TABLE)
