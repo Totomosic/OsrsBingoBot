@@ -68,7 +68,7 @@ Obtain 500 of the highest logs you can woodcut. Fletch these into 500 bows / 250
 Get {50,100,10} kc at any boss;Post a screenshot of your kc before and after completing.
 Obtain {30,60,10} Marks of Grace;Post a screenshot of your Marks of Grace stack before and after completing.
 Obtain {1000,1500,100} stardust from shooting stars;Post a screenshot of the stardust in your invent after a star disintergrates.
-Empower 150 Unpowered Orbs;Post a screenshot of your stack of unpowered orbs, then powered with combined Magic xp gained.
+Empower {300,500,50} Unpowered Orbs;Post a screenshot of your stack of unpowered orbs, then powered with combined Magic xp gained.
 Make 300 house tabs;Post a screenshot of the 300 house tabs in your invent while standing next to a lecturn after completion.
 Mine 50 Red Topaz;Post a screenshot of your bank showing your current stack of gems and then completed 50 after completion.
 Obtain {75,150,25} Crystal Shards via any method you want;Post a screenshot of the Crystal Shards in your invent after completion. 
