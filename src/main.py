@@ -97,7 +97,7 @@ class BingoBot(commands.Bot):
         self.loop.create_task(self.reaction_removed_watcher())
         self.loop.create_task(self.vote_start_watcher())
         self.loop.create_task(self.vote_ended_watcher())
-        self.loop.create_task(self.winner_watcher())
+        # self.loop.create_task(self.winner_watcher())
         self.loop.create_task(self.task_start_watcher())
         logging.info("Bot online")
 
@@ -146,34 +146,34 @@ class BingoBot(commands.Bot):
                 await finish_vote(active_vote)
             await asyncio.sleep(3)
 
-    async def winner_watcher(self):
-        while True:
-            unclaimed_tasks = g_context.database.get_unclaimed_tasks()
-            standard_unclaimed_tasks = [task for task in unclaimed_tasks if task.task_type == model.TASK_TYPE_STANDARD]
-            if len(standard_unclaimed_tasks) >= config.winner_task_count:
-                all_task_completions: list[model.TaskCompletion] = []
-                for task in unclaimed_tasks:
-                    all_task_completions += g_context.database.get_task_completions(task.id)
-                channel = g_context.announcement_channel
-                if len(all_task_completions) > 0:
-                    winner = random.choice(all_task_completions)
-                    user = self.get_user(int(winner.user_id))
-                    while user is None and len(all_task_completions) > 1:
-                        all_task_completions.remove(winner)
-                        winner = random.choice(all_task_completions)
-                        user = self.get_user(int(winner.user_id))
-                    if user is not None:
-                        embed = discord.Embed(title="Congratuations!")
-                        embed.description = f"The winner is {user.mention}"
-                        await channel.send(embed=embed)
-                else:
-                    embed = discord.Embed(title="Congratuations!")
-                    embed.description = f"No winners"
-                    await channel.send(embed=embed)
-                for task in unclaimed_tasks:
-                    task.drawn_prize = True
-                    g_context.database.update_task_instance(task)
-            await asyncio.sleep(60)
+    # async def winner_watcher(self):
+    #     while True:
+    #         unclaimed_tasks = g_context.database.get_unclaimed_tasks()
+    #         standard_unclaimed_tasks = [task for task in unclaimed_tasks if task.task_type == model.TASK_TYPE_STANDARD]
+    #         if len(standard_unclaimed_tasks) >= config.winner_task_count:
+    #             all_task_completions: list[model.TaskCompletion] = []
+    #             for task in unclaimed_tasks:
+    #                 all_task_completions += g_context.database.get_task_completions(task.id)
+    #             channel = g_context.announcement_channel
+    #             if len(all_task_completions) > 0:
+    #                 winner = random.choice(all_task_completions)
+    #                 user = self.get_user(int(winner.user_id))
+    #                 while user is None and len(all_task_completions) > 1:
+    #                     all_task_completions.remove(winner)
+    #                     winner = random.choice(all_task_completions)
+    #                     user = self.get_user(int(winner.user_id))
+    #                 if user is not None:
+    #                     embed = discord.Embed(title="Congratuations!")
+    #                     embed.description = f"The winner is {user.mention}"
+    #                     await channel.send(embed=embed)
+    #             else:
+    #                 embed = discord.Embed(title="Congratuations!")
+    #                 embed.description = f"No winners"
+    #                 await channel.send(embed=embed)
+    #             for task in unclaimed_tasks:
+    #                 task.drawn_prize = True
+    #                 g_context.database.update_task_instance(task)
+    #         await asyncio.sleep(60)
 
     async def reaction_added_watcher(self):
         while True:
