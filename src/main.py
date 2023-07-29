@@ -496,6 +496,77 @@ async def start_new_vote(end_time_override: datetime.datetime = None):
     for i in range(config.voting_task_count):
         logging.info(f"\t{i + 1}. {evaluated_tasks[i]} (TaskId={tasks[i].id})")
 
+@dataclasses.dataclass
+class TaskStats:
+    tasks: list[model.TaskInstance]
+    completions: list[model.TaskCompletion]
+
+    def has_completions(self):
+        return len(self.completions) > 0
+
+    def get_standard_tasks(self) -> list[model.TaskInstance]:
+        return [t for t in self.tasks if t.task_type == model.TASK_TYPE_STANDARD]
+
+    def get_bonus_tasks(self) -> list[model.TaskInstance]:
+        return [t for t in self.tasks if t.task_type == model.TASK_TYPE_BONUS]
+
+    def get_standard_task_completions(self) -> list[model.TaskCompletion]:
+        standard_task_ids = [t.id for t in self.get_standard_tasks()]
+        return [c for c in self.completions if c.instance_id in standard_task_ids]
+
+    def get_bonus_task_completions(self) -> list[model.TaskCompletion]:
+        bonus_task_ids = [t.id for t in self.get_bonus_tasks()]
+        return [c for c in self.completions if c.instance_id in bonus_task_ids]
+
+    def get_unique_user_ids(self) -> list[int]:
+        user_ids = set([int(c.user_id) for c in self.completions])
+        return list(user_ids)
+
+    def get_completions_for_user(self, user_id: int) -> tuple[list[model.TaskCompletion], list[model.TaskCompletion]]:
+        standard_completions = self.get_standard_task_completions()
+        bonus_completions = self.get_bonus_task_completions()
+        return [c for c in standard_completions if int(c.user_id) == int(user_id)], [c for c in bonus_completions if int(c.user_id) == int(user_id)]
+
+def compute_task_stats(tasks: list[model.TaskInstance]):
+    stats = TaskStats(tasks=tasks, completions=[])
+    for task in tasks:
+        stats.completions += g_context.database.get_task_completions(task.id)
+    return stats
+
+async def draw_winner():
+    unclaimed_tasks = g_context.database.get_unclaimed_tasks()
+    stats = compute_task_stats(unclaimed_tasks)
+    channel = g_context.announcement_channel
+    if stats.has_completions():
+        winner = random.choice(stats.completions)
+        user = bot.get_user(int(winner.user_id))
+        while False and len(stats.completions) > 1:
+            stats.completions.remove(winner)
+            winner = random.choice(stats.completions)
+            user = bot.get_user(int(winner.user_id))
+        if True:
+            role = g_context.announcement_channel.guild.get_role(config.community_role_id)
+            content = ""
+            if role is not None:
+                content = role.mention
+            winner_stats = stats.get_completions_for_user(winner.user_id)
+            embed = discord.Embed()
+            embed.color = 0xf9cd46
+            description = f"In the last {len(stats.get_standard_tasks())} weeks, there were...\n\n"
+            description += f"**{len(stats.completions)}** total task completions ({len(stats.get_standard_task_completions())} standard tasks, {len(stats.get_bonus_task_completions())} bonus tasks)\n"
+            description += f"**{len(stats.get_unique_user_ids())}** unique participants\n\n"
+            description += f"**The winner is, {user.mention if user is not None else 'Unknown'}!**\n\n"
+            description += "Please message a task admin to claim your prize."
+            embed.description = description
+            await channel.send(embed=embed, content=content)
+    else:
+        embed = discord.Embed(title="Congratuations!")
+        embed.description = f"No winners"
+        await channel.send(embed=embed)
+    # for task in unclaimed_tasks:
+    #     task.drawn_prize = True
+    #     g_context.database.update_task_instance(task)
+
 # Setup bot commands
 
 @bot.command()
@@ -553,6 +624,10 @@ async def startvote(ctx: commands.Context, end_time: int = None):
     if not is_bingo_admin(ctx.author):
         return
     await start_new_vote(end_time_override=datetime.datetime.fromtimestamp(end_time) if end_time is not None else None)
+
+@bot.command()
+async def drawwinner(ctx: commands.Context):
+    await draw_winner()
 
 @bot.command()
 async def activetask(ctx: commands.Context):

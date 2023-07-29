@@ -185,7 +185,7 @@ class DatabaseConnection:
         return select_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s AND start_time < %s AND task_type = %s", timestamp, timestamp, task_type)
 
     def get_unclaimed_tasks(self):
-        return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE drawn_prize = false ORDER BY end_time ASC")
+        return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE drawn_prize = false AND end_time < %s ORDER BY end_time ASC", datetime.datetime.now())
 
     def create_task_instance(self, new_task: TaskInstance):
         active_instance = self.get_active_task_instance(task_type=new_task.task_type)
