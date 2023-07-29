@@ -533,18 +533,18 @@ def compute_task_stats(tasks: list[model.TaskInstance]):
         stats.completions += g_context.database.get_task_completions(task.id)
     return stats
 
-async def draw_winner():
+async def draw_winner(channel: discord.TextChannel = None, update_tasks: bool = True):
     unclaimed_tasks = g_context.database.get_unclaimed_tasks()
     stats = compute_task_stats(unclaimed_tasks)
-    channel = g_context.announcement_channel
+    channel = channel or g_context.announcement_channel
     if stats.has_completions():
         winner = random.choice(stats.completions)
         user = bot.get_user(int(winner.user_id))
-        while False and len(stats.completions) > 1:
+        while user is None and len(stats.completions) > 1:
             stats.completions.remove(winner)
             winner = random.choice(stats.completions)
             user = bot.get_user(int(winner.user_id))
-        if True:
+        if user is not None:
             role = g_context.announcement_channel.guild.get_role(config.community_role_id)
             content = ""
             if role is not None:
@@ -563,9 +563,10 @@ async def draw_winner():
         embed = discord.Embed(title="Congratuations!")
         embed.description = f"No winners"
         await channel.send(embed=embed)
-    # for task in unclaimed_tasks:
-    #     task.drawn_prize = True
-    #     g_context.database.update_task_instance(task)
+    if update_tasks:
+        for task in unclaimed_tasks:
+            task.drawn_prize = True
+            g_context.database.update_task_instance(task)
 
 # Setup bot commands
 
@@ -628,6 +629,10 @@ async def startvote(ctx: commands.Context, end_time: int = None):
 @bot.command()
 async def drawwinner(ctx: commands.Context):
     await draw_winner()
+
+@bot.command()
+async def testwinner(ctx: commands.Context):
+    await draw_winner(channel=ctx.channel, update_tasks=False)
 
 @bot.command()
 async def activetask(ctx: commands.Context):
