@@ -628,10 +628,14 @@ async def startvote(ctx: commands.Context, end_time: int = None):
 
 @bot.command()
 async def drawwinner(ctx: commands.Context):
+    if not is_bingo_admin(ctx.author):
+        return
     await draw_winner()
 
 @bot.command()
 async def testwinner(ctx: commands.Context):
+    if not is_bingo_admin(ctx.author):
+        return
     await draw_winner(channel=ctx.channel, update_tasks=False)
 
 @bot.command()
@@ -689,6 +693,8 @@ async def reloadtasks(ctx: commands.Context):
 
 @bot.command()
 async def testpermissions(ctx: commands.Context):
+    if not is_bingo_admin(ctx.author):
+        return
     message = await ctx.send("Test message")
     await message.add_reaction(BOT_ACKNOWLEDGE_REACTION)
     await asyncio.sleep(2)
