@@ -280,7 +280,6 @@ number_reactions = [
 ]
 
 async def end_task(task_instance: model.TaskInstance):
-    task_instance.drawn_prize = True
     g_context.database.update_task_instance(task_instance)
 
     channel = g_context.announcement_channel
