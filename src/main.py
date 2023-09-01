@@ -11,6 +11,7 @@ import math
 import os
 import random
 import traceback
+import re
 
 from discord.message import Message
 from discord.reaction import Reaction
@@ -532,9 +533,8 @@ def compute_task_stats(tasks: list[model.TaskInstance]):
         stats.completions += g_context.database.get_task_completions(task.id)
     return stats
 
-async def draw_winner(channel: discord.TextChannel = None, update_tasks: bool = True):
-    unclaimed_tasks = g_context.database.get_unclaimed_tasks()
-    stats = compute_task_stats(unclaimed_tasks)
+async def draw_winner_with_tasks(tasks: list[model.TaskInstance], existing_message: discord.Message = None, channel: discord.TextChannel = None, update_tasks: bool = True):
+    stats = compute_task_stats(tasks)
     channel = channel or g_context.announcement_channel
     if stats.has_completions():
         winner = random.choice(stats.completions)
@@ -548,7 +548,6 @@ async def draw_winner(channel: discord.TextChannel = None, update_tasks: bool = 
             content = ""
             if role is not None:
                 content = role.mention
-            winner_stats = stats.get_completions_for_user(winner.user_id)
             embed = discord.Embed()
             embed.color = 0xf9cd46
             description = f"In the last {len(stats.get_standard_tasks())} weeks, there were...\n\n"
@@ -557,15 +556,25 @@ async def draw_winner(channel: discord.TextChannel = None, update_tasks: bool = 
             description += f"**The winner is, {user.mention if user is not None else 'Unknown'}!**\n\n"
             description += "Please message a task admin to claim your prize."
             embed.description = description
-            await channel.send(embed=embed, content=content)
+            if existing_message is not None:
+                await existing_message.edit(embed=embed, content=content)
+            else:
+                await channel.send(embed=embed, content=content)
     else:
         embed = discord.Embed(title="Congratuations!")
         embed.description = f"No winners"
-        await channel.send(embed=embed)
+        if existing_message is not None:
+            await existing_message.edit(embed=embed, content=content)
+        else:
+            await channel.send(embed=embed, content=content)
     if update_tasks:
-        for task in unclaimed_tasks:
+        for task in tasks:
             task.drawn_prize = True
             g_context.database.update_task_instance(task)
+
+async def draw_winner(channel: discord.TextChannel = None, update_tasks: bool = True):
+    unclaimed_tasks = g_context.database.get_unclaimed_tasks()
+    await draw_winner_with_tasks(unclaimed_tasks, existing_message=None, channel=channel, update_tasks=update_tasks)
 
 # Setup bot commands
 
@@ -689,6 +698,30 @@ async def reloadtasks(ctx: commands.Context):
                 )
             )
     g_context.database.insert_tasks(parsed_tasks)
+
+@bot.command()
+async def rerollwinner(ctx: commands.Context, message_id: str):
+    channel = g_context.announcement_channel
+    message = channel.get_partial_message(int(message_id))
+    if not message:
+        ctx.send("No message found")
+        return
+    try:
+        message = await message.fetch()
+        message_content = message.embeds[0].description
+        pattern = "In the last (\d+) weeks, there were..."
+        matches = re.match(pattern, message_content)
+        if not matches:
+            ctx.send("Invalid message format")
+            return
+        weeks = int(matches.group(1))
+        logging.info(f"Weeks {weeks}")
+        timestamp = message.created_at - datetime.timedelta(seconds=weeks * config.task_duration_seconds)
+        task_instances = g_context.database.get_completed_tasks_between(timestamp, message.created_at)
+        await draw_winner_with_tasks(task_instances, existing_message=message, update_tasks=False)
+    except discord.errors.NotFound:
+        ctx.send("No message found")
+        return
 
 @bot.command()
 async def testpermissions(ctx: commands.Context):

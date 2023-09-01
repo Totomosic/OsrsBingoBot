@@ -187,6 +187,9 @@ class DatabaseConnection:
     def get_unclaimed_tasks(self):
         return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE drawn_prize = false AND end_time < %s ORDER BY end_time ASC", datetime.datetime.now())
 
+    def get_completed_tasks_between(self, start: datetime.datetime, end: datetime.datetime):
+        return select_multiple_with_model(TaskInstance, self.connection, f"SELECT * FROM {TASK_INSTANCES_TABLE} WHERE end_time > %s AND end_time < %s ORDER BY end_time ASC", start, end)
+
     def create_task_instance(self, new_task: TaskInstance):
         active_instance = self.get_active_task_instance(task_type=new_task.task_type)
         if active_instance is not None:

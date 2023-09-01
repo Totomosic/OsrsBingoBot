@@ -14,7 +14,7 @@ class RandomComponent:
 
     def evaluate(self) -> int:
         value = random.randint(self.min, self.max)
-        return int(round(value // self.rounding) * self.rounding)
+        return int(round(value / float(self.rounding)) * self.rounding)
 
 class ParsedTemplate:
     def __init__(self, template: str):
