@@ -725,6 +725,8 @@ async def rerollwinner(ctx: commands.Context, message_id: str):
 
 @bot.command()
 async def taskcount(ctx: commands.Context):
+    if not is_bingo_admin(ctx.author):
+        return
     completed_tasks = g_context.database.get_unclaimed_tasks()
     standard_tasks = [t for t in completed_tasks if t.task_type == model.TASK_TYPE_STANDARD]
     bonus_tasks = [t for t in completed_tasks if t.task_type == model.TASK_TYPE_BONUS]
