@@ -113,7 +113,7 @@ class BingoBot(commands.Bot):
                     bonus_task = g_context.database.get_active_task_instance(task_type=model.TASK_TYPE_BONUS)
                     if bonus_task is not None:
                         await post_task_instance(bonus_task)
-            await asyncio.sleep(3)
+            await asyncio.sleep(10)
 
     async def task_start_watcher(self):
         while True:
@@ -137,7 +137,7 @@ class BingoBot(commands.Bot):
                             await vote_message.delete()
                         except discord.NotFound:
                             pass
-            await asyncio.sleep(3)
+            await asyncio.sleep(10)
 
     async def vote_ended_watcher(self):
         while True:
@@ -145,7 +145,7 @@ class BingoBot(commands.Bot):
             active_vote = g_context.database.get_active_vote()
             if active_vote is not None and active_vote.end_time < now:
                 await finish_vote(active_vote)
-            await asyncio.sleep(3)
+            await asyncio.sleep(10)
 
     # async def winner_watcher(self):
     #     while True:
